@@ -1,0 +1,660 @@
+{% extends "base.html" %}
+
+{% block title %}CommunicationX - Home{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='assets/CommunicationX.png') }}" alt="Logo" class="logo-small me-2">
+                <span class="fw-bold">CommunicationX</span>
+            </div>
+            <div class="user-info">
+                {% if current_user.profile_image_url %}
+                    <img src="{{ current_user.profile_image_url }}" alt="Avatar" class="user-avatar">
+                {% else %}
+                    <div class="user-avatar">{{ current_user.first_name[0] if current_user.first_name else 'U' }}</div>
+                {% endif %}
+                <div class="user-name">{{ current_user.first_name or current_user.username or 'User' }}</div>
+            </div>
+        </div>
+
+        <div class="server-list">
+            <div class="d-flex justify-content-between align-items-center p-3">
+                <h6 class="mb-0 text-secondary">Servers</h6>
+                <button class="btn btn-sm btn-primary" data-modal-target="createServerModal">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+            {% if servers %}
+                {% for server in servers %}
+                <div class="server-item" onclick="window.location.href='{{ url_for('server_view', server_id=server.id) }}'">
+                    <div class="server-icon">{{ server.name[0].upper() }}</div>
+                    <div>
+                        <div class="server-name">{{ server.name }}</div>
+                        {% if server.description %}
+                            <small class="text-muted">{{ server.description[:30] }}...</small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="empty-state-title">No servers yet</div>
+                    <div class="empty-state-text">Create your first server to get started</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="mt-auto p-3 border-top">
+            <div class="user-actions mb-3">
+                <a href="{{ url_for('profile') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-user-circle"></i> Profile
+                </a>
+                <a href="{{ url_for('voicemails') }}" class="btn btn-outline-info w-100 mb-2">
+                    <i class="fas fa-voicemail"></i> Voicemails
+                </a>
+                {% if current_user.is_authenticated and (current_user.is_admin or current_user.email == 'k.rajput0542@gmail.com') %}
+                <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-outline-danger w-100 mb-2">
+                    <i class="fas fa-shield-alt"></i> Admin Panel
+                </a>
+                {% endif %}
+                
+                <!-- Emergency admin access for super admin -->
+                <a href="{{ url_for('admin.force_admin_access') }}" class="btn btn-danger w-100 mb-2">
+                    <i class="fas fa-key"></i> Emergency Admin Access
+                </a>
+                
+                <!-- Debug links for admin access (remove after testing) -->
+                {% if current_user.is_authenticated and current_user.email == 'k.rajput0542@gmail.com' %}
+                <div class="small text-muted mb-2">
+                    <a href="{{ url_for('admin.debug_user_status') }}" class="text-decoration-none">Check Status</a> |
+                    <a href="{{ url_for('admin.grant_admin_debug') }}" class="text-decoration-none">Grant Admin</a>
+                </div>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('replit_auth.logout') }}" class="btn btn-secondary w-100">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        <div class="content-header">
+            <h2 class="content-title">
+                <i class="fas fa-home"></i>
+                Welcome to CommunicationX
+            </h2>
+            <div class="header-actions">
+                <a href="{{ url_for('direct_messages') }}" class="btn btn-primary me-2">
+                    <i class="fas fa-comments"></i> Messages
+                </a>
+                <div class="dropdown">
+                    <button class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-tools"></i> Tools
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="openCodeWorkspace('personal')">
+                            <i class="fas fa-code"></i> HackKit (Personal)
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openCodeWorkspace('group')">
+                            <i class="fas fa-users"></i> HackKit (Group)
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="openDesignWorkspace('personal')">
+                            <i class="fas fa-paint-brush"></i> Canva (Personal)
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openDesignWorkspace('group')">
+                            <i class="fas fa-users"></i> Canva (Group)
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="openBrowserSession('personal')">
+                            <i class="fas fa-globe"></i> Opera (Personal)
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openBrowserSession('group')">
+                            <i class="fas fa-users"></i> Opera (Group)
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="openFilesManager()">
+                            <i class="fas fa-folder"></i> Files Manager
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="welcome-section">
+                        <h3>Getting Started</h3>
+                        <p class="text-secondary">Welcome to CommunicationX! Here's how to get started:</p>
+                        
+                        <div class="getting-started-cards">
+                            <div class="card bg-dark border-secondary mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-server text-primary"></i>
+                                        Create a Server
+                                    </h5>
+                                    <p class="card-text">Create a server to organize your conversations by team or project.</p>
+                                    <button class="btn btn-primary btn-sm" data-modal-target="createServerModal">
+                                        Create Server
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card bg-dark border-secondary mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-envelope text-success"></i>
+                                        Direct Messages
+                                    </h5>
+                                    <p class="card-text">Send direct messages to other users or start voice/video calls.</p>
+                                    <a href="{{ url_for('direct_messages') }}" class="btn btn-success btn-sm">
+                                        Open DMs
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="card bg-dark border-secondary mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-user-plus text-info"></i>
+                                        Invite Friends
+                                    </h5>
+                                    <p class="card-text">Invite your friends to join CommunicationX and start chatting together.</p>
+                                    <button class="btn btn-info btn-sm" onclick="openModal('inviteFriendsModal')">
+                                        Create Invitation
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card bg-dark border-secondary mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-users text-warning"></i>
+                                        Invite Friends
+                                    </h5>
+                                    <p class="card-text">Share your server with friends and colleagues to start collaborating.</p>
+                                    <button class="btn btn-warning btn-sm" disabled>
+                                        Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="quick-stats">
+                        <h4>Quick Stats</h4>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value">{{ servers|length }}</div>
+                                <div class="stat-label">Servers</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">0</div>
+                                <div class="stat-label">Messages Today</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">Online</div>
+                                <div class="stat-label">Status</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call Notification Overlay -->
+<div class="call-notification-overlay" id="callNotificationOverlay" style="display: none;">
+    <div class="call-notification">
+        <div class="call-notification-header">
+            <i class="fas fa-phone-alt"></i>
+            <span>Incoming Call</span>
+        </div>
+        <div class="call-notification-content">
+            <div class="caller-avatar" id="callerAvatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="caller-info">
+                <div class="caller-name" id="callerName">Unknown Caller</div>
+                <div class="call-type" id="callType">Voice Call</div>
+            </div>
+        </div>
+        <div class="call-notification-actions">
+            <button class="call-action-btn decline-btn" onclick="declineIncomingCall()">
+                <i class="fas fa-phone-slash"></i>
+                <span>Decline</span>
+            </button>
+            <button class="call-action-btn accept-btn" onclick="acceptIncomingCall()">
+                <i class="fas fa-phone"></i>
+                <span>Accept</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Create Server Modal -->
+<div class="modal" id="createServerModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Create Server</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('create_server') }}">
+            <div class="form-group">
+                <label class="form-label">Server Name</label>
+                <input type="text" name="server_name" class="form-input" required placeholder="Enter server name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description (Optional)</label>
+                <textarea name="server_description" class="form-input" rows="3" placeholder="Describe your server"></textarea>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn-secondary modal-close">Cancel</button>
+                <button type="submit" class="btn-primary">Create Server</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.getting-started-cards .card {
+    transition: transform 0.2s ease;
+}
+
+.getting-started-cards .card:hover {
+    transform: translateY(-2px);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    background-color: rgb(var(--secondary-bg));
+    border-radius: 8px;
+    border: 1px solid rgb(var(--accent-bg));
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: rgb(var(--accent-color));
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: rgb(var(--text-muted));
+    text-transform: uppercase;
+}
+
+.welcome-section h3 {
+    color: rgb(var(--text-primary));
+    margin-bottom: 1rem;
+}
+
+.quick-stats {
+    background-color: rgb(var(--secondary-bg));
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid rgb(var(--accent-bg));
+}
+
+.quick-stats h4 {
+    color: rgb(var(--text-primary));
+    margin-bottom: 1rem;
+}
+
+/* Call Notification Styles */
+.call-notification-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.call-notification {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+    animation: slideUp 0.3s ease-out;
+}
+
+.call-notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.call-notification-header i {
+    color: #4CAF50;
+    animation: pulse 2s infinite;
+}
+
+.caller-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    font-size: 2.5rem;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.caller-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.caller-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.call-type {
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 20px;
+}
+
+.call-notification-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.call-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-width: 100px;
+}
+
+.accept-btn {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.decline-btn {
+    background: linear-gradient(45deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.call-action-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.call-action-btn i {
+    font-size: 1.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+</style>
+
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script>
+let currentCallId = null;
+let socket = null;
+
+// Initialize Socket.IO connection
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSocket();
+});
+
+function initializeSocket() {
+    socket = io();
+    
+    socket.on('connect', function() {
+        console.log('Connected to server');
+    });
+    
+    socket.on('disconnect', function() {
+        console.log('Disconnected from server');
+    });
+    
+    // Listen for incoming call notifications
+    socket.on('incoming_call', function(data) {
+        showCallNotification(data);
+    });
+    
+    socket.on('call_declined', function(data) {
+        hideCallNotification();
+    });
+    
+    socket.on('call_ended', function(data) {
+        hideCallNotification();
+    });
+}
+
+function showCallNotification(callData) {
+    currentCallId = callData.call_id;
+    
+    // Update caller information
+    document.getElementById('callerName').textContent = callData.caller_name;
+    document.getElementById('callType').textContent = callData.call_type === 'video' ? 'Video Call' : 'Voice Call';
+    
+    // Update caller avatar
+    const callerAvatar = document.getElementById('callerAvatar');
+    if (callData.caller_avatar) {
+        callerAvatar.innerHTML = `<img src="${callData.caller_avatar}" alt="Caller">`;
+    } else {
+        callerAvatar.innerHTML = '<i class="fas fa-user"></i>';
+    }
+    
+    // Show notification overlay
+    document.getElementById('callNotificationOverlay').style.display = 'flex';
+    
+    // Play ring tone (if available)
+    playRingTone();
+}
+
+function hideCallNotification() {
+    document.getElementById('callNotificationOverlay').style.display = 'none';
+    currentCallId = null;
+    stopRingTone();
+}
+
+async function acceptIncomingCall() {
+    if (!currentCallId) return;
+    
+    try {
+        const response = await fetch(`/api/calls/${currentCallId}/accept`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            hideCallNotification();
+            // Redirect to call page
+            window.location.href = `/join_call/${currentCallId}`;
+        } else {
+            console.error('Failed to accept call');
+            alert('Failed to accept call. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error accepting call:', error);
+        alert('Failed to accept call. Please try again.');
+    }
+}
+
+async function declineIncomingCall() {
+    if (!currentCallId) return;
+    
+    try {
+        const response = await fetch(`/api/calls/${currentCallId}/decline`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            hideCallNotification();
+        } else {
+            console.error('Failed to decline call');
+        }
+    } catch (error) {
+        console.error('Error declining call:', error);
+    }
+}
+
+function playRingTone() {
+    // Create audio element for ring tone
+    const audio = document.createElement('audio');
+    audio.id = 'ringTone';
+    audio.loop = true;
+    audio.volume = 0.5;
+    
+    // Use a default ring tone or create a simple tone
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    
+    oscillator.frequency.setValueAtTime(800, context.currentTime);
+    gainNode.gain.setValueAtTime(0.1, context.currentTime);
+    
+    oscillator.start();
+    
+    // Stop after 0.5 seconds and repeat
+    setTimeout(() => {
+        oscillator.stop();
+        setTimeout(playRingTone, 1000);
+    }, 500);
+}
+
+function stopRingTone() {
+    const ringTone = document.getElementById('ringTone');
+    if (ringTone) {
+        ringTone.pause();
+        ringTone.remove();
+    }
+}
+
+// Close notification when clicking outside
+document.addEventListener('click', function(event) {
+    const overlay = document.getElementById('callNotificationOverlay');
+    if (event.target === overlay) {
+        declineIncomingCall();
+    }
+});
+
+// Tools functionality
+function openCodeWorkspace(type) {
+    if (type === 'personal') {
+        window.open('https://github.com/codespaces', '_blank', 'width=1200,height=800');
+    } else {
+        // For group workspaces, create a shared GitHub Codespace
+        const repoName = prompt('Enter repository name for group workspace:');
+        if (repoName) {
+            window.open(`https://github.com/codespaces/new?repo=${repoName}`, '_blank', 'width=1200,height=800');
+        }
+    }
+}
+
+function openDesignWorkspace(type) {
+    if (type === 'personal') {
+        window.open('https://www.canva.com/design/create', '_blank', 'width=1200,height=800');
+    } else {
+        window.open('https://www.canva.com/teams/', '_blank', 'width=1200,height=800');
+    }
+}
+
+function openBrowserSession(type) {
+    // Create a proper Opera browser session with sync
+    window.open(`/tools/opera/${type}`, '_blank', 'width=1200,height=800');
+}
+
+function openFilesManager() {
+    window.open('/tools/files', '_blank', 'width=1000,height=700');
+}
+
+// Integration with call functionality
+function shareToolInCall(toolType, workspaceId) {
+    if (typeof socket !== 'undefined') {
+        socket.emit('share_tool_in_call', {
+            tool_type: toolType,
+            workspace_id: workspaceId
+        });
+    }
+}
+</script>
+{% endblock %}

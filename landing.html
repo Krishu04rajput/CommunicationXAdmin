@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to CommunicationX{% endblock %}
+
+{% block content %}
+<div class="landing-container">
+    <div class="landing-content">
+        <img src="{{ url_for('static', filename='assets/CommunicationX.png') }}" alt="CommunicationX Logo" class="landing-logo">
+        
+        <h1 class="landing-title">CommunicationX</h1>
+        <p class="landing-subtitle">
+            Connect, communicate, and collaborate with your team in real-time. 
+            Experience the future of digital communication.
+        </p>
+        
+        <div class="landing-actions">
+            <a href="{{ url_for('login') }}" class="btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Get Started
+            </a>
+        </div>
+        
+        <div class="features-preview mt-5">
+            <div class="row text-center">
+                <div class="col-md-4 mb-3">
+                    <div class="feature-item">
+                        <i class="fas fa-comments feature-icon"></i>
+                        <h4>Real-time Messaging</h4>
+                        <p>Instant messaging with your team members</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="feature-item">
+                        <i class="fas fa-video feature-icon"></i>
+                        <h4>Video Calls</h4>
+                        <p>High-quality video and audio calling</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="feature-item">
+                        <i class="fas fa-server feature-icon"></i>
+                        <h4>Team Servers</h4>
+                        <p>Organize conversations by teams and projects</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.features-preview {
+    margin-top: 3rem;
+    opacity: 0.8;
+}
+
+.feature-item {
+    padding: 1.5rem;
+    background-color: rgb(var(--secondary-bg) / 0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgb(var(--accent-bg) / 0.3);
+    transition: transform 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-5px);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    color: rgb(var(--accent-color));
+    margin-bottom: 1rem;
+}
+
+.feature-item h4 {
+    color: rgb(var(--text-primary));
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.feature-item p {
+    color: rgb(var(--text-secondary));
+    font-size: 0.9rem;
+    margin: 0;
+}
+</style>
+{% endblock %}

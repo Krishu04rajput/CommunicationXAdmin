@@ -1,0 +1,67 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="200" cy="200" r="190" fill="#202225" stroke="#5865f2" stroke-width="4"/>
+  
+  <!-- Main Logo Design inspired by the uploaded image -->
+  
+  <!-- Left Wing/Flame -->
+  <path d="M100 250 C120 220, 140 200, 160 180 C170 170, 180 160, 190 150 C195 145, 198 140, 200 135 C195 140, 185 150, 175 165 C165 180, 155 195, 145 210 C135 225, 125 240, 115 255 C110 262, 105 268, 100 275 Z" fill="#ffffff"/>
+  
+  <!-- Inner Left Flame Detail -->
+  <path d="M120 240 C135 215, 150 195, 165 175 C170 168, 175 162, 180 156 C182 153, 184 150, 185 147 C182 150, 177 156, 172 163 C167 170, 162 178, 157 186 C152 194, 147 202, 142 210 C137 218, 132 225, 127 232 Z" fill="#5865f2"/>
+  
+  <!-- Right Wing/Flame -->
+  <path d="M300 250 C280 220, 260 200, 240 180 C230 170, 220 160, 210 150 C205 145, 202 140, 200 135 C205 140, 215 150, 225 165 C235 180, 245 195, 255 210 C265 225, 275 240, 285 255 C290 262, 295 268, 300 275 Z" fill="#ffffff"/>
+  
+  <!-- Inner Right Flame Detail -->
+  <path d="M280 240 C265 215, 250 195, 235 175 C230 168, 225 162, 220 156 C218 153, 216 150, 215 147 C218 150, 223 156, 228 163 C233 170, 238 178, 243 186 C248 194, 253 202, 258 210 C263 218, 268 225, 273 232 Z" fill="#5865f2"/>
+  
+  <!-- Top Left Star -->
+  <g transform="translate(160,120)">
+    <path d="M0 -15 L4 -4 L15 -4 L6 3 L10 14 L0 7 L-10 14 L-6 3 L-15 -4 L-4 -4 Z" fill="#ffffff"/>
+  </g>
+  
+  <!-- Top Right Star -->
+  <g transform="translate(240,120)">
+    <path d="M0 -15 L4 -4 L15 -4 L6 3 L10 14 L0 7 L-10 14 L-6 3 L-15 -4 L-4 -4 Z" fill="#ffffff"/>
+  </g>
+  
+  <!-- Center Circle/Gem -->
+  <circle cx="200" cy="200" r="8" fill="#ffffff"/>
+  <circle cx="200" cy="200" r="12" fill="none" stroke="#5865f2" stroke-width="2"/>
+  
+  <!-- Bottom Text Curve Path -->
+  <path id="textcurve" d="M 90 300 Q 200 320 310 300" fill="none" stroke="none"/>
+  
+  <!-- Curved Text -->
+  <text font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">
+    <textPath href="#textcurve" startOffset="50%" text-anchor="middle">
+      PROJECT-X
+    </textPath>
+  </text>
+  
+  <!-- Bottom Title -->
+  <text x="200" y="350" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">
+    COMMUNICATIONX
+  </text>
+  
+  <!-- Subtle glow effect -->
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Apply glow to main elements -->
+  <style>
+    .glow { filter: url(#glow); }
+  </style>
+  
+  <!-- Additional decorative elements -->
+  <circle cx="200" cy="200" r="160" fill="none" stroke="#5865f2" stroke-width="1" opacity="0.3"/>
+  <circle cx="200" cy="200" r="130" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.2"/>
+</svg>

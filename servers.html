@@ -1,0 +1,490 @@
+{% extends "base.html" %}
+
+{% block title %}Server Management - Admin Panel{% endblock %}
+
+{% block head %}
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 0;
+        margin-bottom: 30px;
+    }
+    
+    .server-table {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .server-row {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        transition: background 0.3s;
+    }
+    
+    .server-row:hover {
+        background: #f8f9fa;
+    }
+    
+    .server-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2em;
+    }
+    
+    .server-info {
+        flex: 1;
+        margin-left: 15px;
+    }
+    
+    .server-name {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .server-details {
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    
+    .server-badges {
+        display: flex;
+        gap: 5px;
+        margin-top: 5px;
+    }
+    
+    .badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.7em;
+        font-weight: bold;
+    }
+    
+    .badge-locked {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .badge-password {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .badge-public {
+        background: #28a745;
+        color: white;
+    }
+    
+    .badge-private {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .server-actions {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.8em;
+        margin: 2px;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <div class="container">
+        <h1><i class="fas fa-server"></i> Server Management</h1>
+        <p>Manage servers, passwords, and security settings</p>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-light">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Search Box -->
+    <div class="search-box">
+        <form method="GET">
+            <div class="row">
+                <div class="col-md-8">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Search servers by name or description..." 
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a href="{{ url_for('admin.manage_servers') }}" class="btn btn-secondary">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Servers List -->
+    <div class="server-table">
+        <div class="server-row" style="background: #f8f9fa; font-weight: bold;">
+            <div class="d-flex align-items-center">
+                <div style="width: 70px;">Icon</div>
+                <div style="flex: 1; margin-left: 15px;">Server Info</div>
+                <div style="width: 300px;">Actions</div>
+            </div>
+        </div>
+        
+        {% for server in servers.items %}
+        <div class="server-row">
+            <div class="d-flex align-items-center">
+                <div class="server-icon">
+                    {{ server.name[0] if server.name else 'S' }}
+                </div>
+                <div class="server-info">
+                    <div class="server-name">{{ server.name }}</div>
+                    <div class="server-details">
+                        Owner: {{ server.owner.username or server.owner.email }}
+                        | Members: {{ server.memberships|length }}
+                        | Created: {{ server.created_at.strftime('%Y-%m-%d') }}
+                    </div>
+                    <div class="server-badges">
+                        {% if server.is_public %}
+                        <span class="badge badge-public">PUBLIC</span>
+                        {% else %}
+                        <span class="badge badge-private">PRIVATE</span>
+                        {% endif %}
+                        {% if server.password_enabled %}
+                        <span class="badge badge-password">PASSWORD PROTECTED</span>
+                        {% endif %}
+                        {% if server.is_locked %}
+                        <span class="badge badge-locked">LOCKED</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="server-actions">
+                    <!-- Password Management -->
+                    {% if not server.password_enabled %}
+                    <button class="btn btn-info btn-sm" onclick="setPassword({{ server.id }}, '{{ server.name }}')">
+                        <i class="fas fa-lock"></i> Set Password
+                    </button>
+                    {% else %}
+                    <button class="btn btn-warning btn-sm" onclick="changePassword({{ server.id }}, '{{ server.name }}')">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="removePassword({{ server.id }}, '{{ server.name }}')">
+                        <i class="fas fa-unlock"></i> Remove Password
+                    </button>
+                    {% endif %}
+                    
+                    <!-- Lock/Unlock -->
+                    {% if not server.is_locked %}
+                    <button class="btn btn-warning btn-sm" onclick="lockServer({{ server.id }}, '{{ server.name }}')">
+                        <i class="fas fa-ban"></i> Lock
+                    </button>
+                    {% else %}
+                    <button class="btn btn-success btn-sm" onclick="unlockServer({{ server.id }}, '{{ server.name }}')">
+                        <i class="fas fa-check"></i> Unlock
+                    </button>
+                    {% endif %}
+                    
+                    <!-- Delete (Super Admin Only) -->
+                    {% if current_user.is_super_admin %}
+                    <button class="btn btn-danger btn-sm" onclick="deleteServer({{ server.id }}, '{{ server.name }}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if servers.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if servers.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_servers', page=servers.prev_num, search=search) }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in servers.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != servers.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.manage_servers', page=page_num, search=search) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if servers.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_servers', page=servers.next_num, search=search) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Password Modal -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="passwordModalTitle">Set Server Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Server: <strong id="passwordServerName"></strong></p>
+                <div class="mb-3">
+                    <label for="serverPassword" class="form-label">Password:</label>
+                    <input type="password" class="form-control" id="serverPassword" placeholder="Enter password...">
+                </div>
+                <div class="mb-3">
+                    <label for="confirmPasswordInput" class="form-label">Confirm Password:</label>
+                    <input type="password" class="form-control" id="confirmPasswordInput" placeholder="Confirm password...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmPasswordBtn">Set Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lock Modal -->
+<div class="modal fade" id="lockModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lock Server</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to lock <strong id="lockServerName"></strong>?</p>
+                <div class="mb-3">
+                    <label for="lockReason" class="form-label">Reason for locking:</label>
+                    <textarea class="form-control" id="lockReason" rows="3" placeholder="Enter reason for locking..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmLock">Lock Server</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentServerId = null;
+let currentAction = null;
+
+function setPassword(serverId, serverName) {
+    currentServerId = serverId;
+    currentAction = 'set';
+    document.getElementById('passwordModalTitle').textContent = 'Set Server Password';
+    document.getElementById('passwordServerName').textContent = serverName;
+    document.getElementById('serverPassword').value = '';
+    document.getElementById('confirmPasswordInput').value = '';
+    new bootstrap.Modal(document.getElementById('passwordModal')).show();
+}
+
+function changePassword(serverId, serverName) {
+    currentServerId = serverId;
+    currentAction = 'change';
+    document.getElementById('passwordModalTitle').textContent = 'Change Server Password';
+    document.getElementById('passwordServerName').textContent = serverName;
+    document.getElementById('serverPassword').value = '';
+    document.getElementById('confirmPasswordInput').value = '';
+    new bootstrap.Modal(document.getElementById('passwordModal')).show();
+}
+
+function removePassword(serverId, serverName) {
+    if (confirm(`Are you sure you want to remove the password from ${serverName}?`)) {
+        fetch(`/admin/servers/${serverId}/remove-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', 'Error removing password');
+        });
+    }
+}
+
+function lockServer(serverId, serverName) {
+    currentServerId = serverId;
+    document.getElementById('lockServerName').textContent = serverName;
+    document.getElementById('lockReason').value = '';
+    new bootstrap.Modal(document.getElementById('lockModal')).show();
+}
+
+function unlockServer(serverId, serverName) {
+    if (confirm(`Are you sure you want to unlock ${serverName}?`)) {
+        fetch(`/admin/servers/${serverId}/unlock`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', 'Error unlocking server');
+        });
+    }
+}
+
+function deleteServer(serverId, serverName) {
+    if (confirm(`Are you sure you want to PERMANENTLY DELETE ${serverName}? This action cannot be undone!`)) {
+        fetch(`/admin/servers/${serverId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('danger', data.error);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', 'Error deleting server');
+        });
+    }
+}
+
+document.getElementById('confirmPasswordBtn').addEventListener('click', function() {
+    const password = document.getElementById('serverPassword').value;
+    const confirmPass = document.getElementById('confirmPasswordInput').value;
+    
+    if (!password) {
+        showAlert('danger', 'Password is required');
+        return;
+    }
+    
+    if (password !== confirmPass) {
+        showAlert('danger', 'Passwords do not match');
+        return;
+    }
+    
+    const endpoint = currentAction === 'set' ? 'set-password' : 'change-password';
+    
+    fetch(`/admin/servers/${currentServerId}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+            location.reload();
+        } else {
+            showAlert('danger', data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error setting password');
+    });
+});
+
+document.getElementById('confirmLock').addEventListener('click', function() {
+    const reason = document.getElementById('lockReason').value || 'No reason provided';
+    
+    fetch(`/admin/servers/${currentServerId}/lock`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('lockModal')).hide();
+            location.reload();
+        } else {
+            showAlert('danger', data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error locking server');
+    });
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.search-box'));
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

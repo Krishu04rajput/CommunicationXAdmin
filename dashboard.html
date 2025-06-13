@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% block title %}Intelligent Admin Dashboard - CommunicationX{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 0;
+        margin-bottom: 30px;
+    }
+    
+    .analytics-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+        transition: transform 0.2s;
+    }
+    
+    .analytics-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        transform: translate(30px, -30px);
+    }
+    
+    .stat-number {
+        font-size: 2.8em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 1.1em;
+        opacity: 0.9;
+    }
+    
+    .stat-change {
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    
+    .realtime-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #28a745;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+        margin-right: 5px;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 20px 0;
+    }
+    
+    .activity-heatmap {
+        display: grid;
+        grid-template-columns: repeat(24, 1fr);
+        gap: 2px;
+        margin: 20px 0;
+    }
+    
+    .hour-block {
+        text-align: center;
+        padding: 10px 5px;
+        border-radius: 5px;
+        background: #f8f9fa;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .hour-block:hover {
+        transform: scale(1.05);
+    }
+    
+    .activity-level-0 { background: #e9ecef; }
+    .activity-level-1 { background: #dee2e6; }
+    .activity-level-2 { background: #adb5bd; }
+    .activity-level-3 { background: #6c757d; }
+    .activity-level-4 { background: #495057; }
+    
+    .top-users-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .user-item {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        transition: background 0.2s;
+    }
+    
+    .user-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .refresh-btn {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .refresh-btn.loading::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: loading 1s infinite;
+    }
+    
+    @keyframes loading {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="fas fa-chart-line"></i> Intelligent Admin Dashboard</h1>
+                <p><span class="realtime-indicator"></span>Real-time analytics and user insights</p>
+            </div>
+            <div>
+                <button id="refreshData" class="btn btn-outline-light refresh-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <span id="lastUpdate" class="small text-light ms-3">Last updated: Now</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Admin Navigation -->
+    <div class="analytics-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5><i class="fas fa-tools"></i> Quick Actions</h5>
+            <div>
+                <a href="{{ url_for('admin.manage_users') }}" class="btn btn-primary me-2">
+                    <i class="fas fa-users"></i> Users
+                </a>
+                <a href="{{ url_for('admin.manage_servers') }}" class="btn btn-info me-2">
+                    <i class="fas fa-server"></i> Servers
+                </a>
+                <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-warning">
+                    <i class="fas fa-clipboard-list"></i> Logs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Statistics -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-number" id="onlineUsers">{{ stats.online_users }}</div>
+                <div class="stat-label">Online Users</div>
+                <div class="stat-change">
+                    <span class="realtime-indicator"></span>Live
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-number" id="activeUsers24h">{{ stats.active_users_24h }}</div>
+                <div class="stat-label">Active Users (24h)</div>
+                <div class="stat-change">
+                    <i class="fas fa-arrow-up text-success"></i> +{{ stats.new_users_today }} today
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-number" id="messagesToday">{{ stats.messages_today }}</div>
+                <div class="stat-label">Messages Today</div>
+                <div class="stat-change">
+                    <i class="fas fa-chart-line"></i> {{ stats.messages_week }} this week
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-number" id="activeServers">{{ stats.active_servers_today }}</div>
+                <div class="stat-label">Active Servers</div>
+                <div class="stat-change">
+                    <i class="fas fa-server"></i> {{ stats.total_servers }} total
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="analytics-card">
+                <h5><i class="fas fa-chart-area"></i> Activity Timeline (24 Hours)</h5>
+                <div class="chart-container">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="analytics-card">
+                <h5><i class="fas fa-mobile-alt"></i> Device Distribution</h5>
+                <div class="chart-container">
+                    <canvas id="deviceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Growth and Top Users -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="analytics-card">
+                <h5><i class="fas fa-chart-line"></i> User Growth (7 Days)</h5>
+                <div class="chart-container">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="analytics-card">
+                <h5><i class="fas fa-star"></i> Most Active Users Today</h5>
+                <div class="top-users-list" id="topUsersList">
+                    {% if stats.top_users_today %}
+                        {% for user in stats.top_users_today[:8] %}
+                        <div class="user-item">
+                            <div>
+                                <strong>{{ user.username }}</strong>
+                                {% if user.name %}
+                                <div class="small text-muted">{{ user.name }}</div>
+                                {% endif %}
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ user.count }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                            <p>No activity data available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Heatmap -->
+    <div class="analytics-card">
+        <h5><i class="fas fa-fire"></i> Hourly Activity Heatmap (Today)</h5>
+        <div class="activity-heatmap" id="activityHeatmap">
+            {% for hour in range(24) %}
+            <div class="hour-block activity-level-0" data-hour="{{ hour }}" data-activity="0">
+                <div class="small">{{ '%02d'|format(hour) }}:00</div>
+                <div class="small" id="activity-{{ hour }}">0</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- System Overview -->
+    <div class="row">
+        <div class="col-md-2">
+            <div class="analytics-card text-center">
+                <h4 class="text-primary">{{ stats.total_users }}</h4>
+                <small>Total Users</small>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="analytics-card text-center">
+                <h4 class="text-success">{{ stats.total_servers }}</h4>
+                <small>Total Servers</small>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="analytics-card text-center">
+                <h4 class="text-info">{{ stats.total_messages }}</h4>
+                <small>Total Messages</small>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="analytics-card text-center">
+                <h4 class="text-warning">{{ stats.banned_users }}</h4>
+                <small>Banned Users</small>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="analytics-card text-center">
+                <h4 class="text-danger">{{ stats.locked_servers }}</h4>
+                <small>Locked Servers</small>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="analytics-card text-center">
+                <h4 class="text-secondary">{{ stats.admin_users }}</h4>
+                <small>Admin Users</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let activityChart, deviceChart, growthChart;
+let refreshInterval;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    loadRealTimeData();
+    
+    // Auto-refresh every 30 seconds
+    refreshInterval = setInterval(loadRealTimeData, 30000);
+    
+    document.getElementById('refreshData').addEventListener('click', function() {
+        this.classList.add('loading');
+        loadRealTimeData();
+        setTimeout(() => this.classList.remove('loading'), 1000);
+    });
+});
+
+function initializeCharts() {
+    // Activity Timeline Chart
+    const activityCtx = document.getElementById('activityChart').getContext('2d');
+    activityChart = new Chart(activityCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'User Activity',
+                data: [],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+
+    // Device Distribution Chart
+    const deviceCtx = document.getElementById('deviceChart').getContext('2d');
+    deviceChart = new Chart(deviceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ stats.device_stats | map(attribute='type') | list | tojson if stats.device_stats else '[]' }},
+            datasets: [{
+                data: {{ stats.device_stats | map(attribute='count') | list | tojson if stats.device_stats else '[]' }},
+                backgroundColor: [
+                    '#667eea',
+                    '#764ba2',
+                    '#f093fb',
+                    '#f5576c',
+                    '#4facfe'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+
+    // User Growth Chart
+    const growthCtx = document.getElementById('growthChart').getContext('2d');
+    growthChart = new Chart(growthCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ stats.user_growth_week | map(attribute='date') | list | tojson if stats.user_growth_week else '[]' }},
+            datasets: [{
+                label: 'New Users',
+                data: {{ stats.user_growth_week | map(attribute='users') | list | tojson if stats.user_growth_week else '[]' }},
+                backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                borderColor: '#667eea',
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function loadRealTimeData() {
+    // Load real-time statistics
+    fetch('/admin/analytics/api/realtime')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('onlineUsers').textContent = data.online_users;
+            document.getElementById('lastUpdate').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        })
+        .catch(error => console.error('Error loading real-time data:', error));
+
+    // Load activity chart data
+    fetch('/admin/analytics/api/activity-chart')
+        .then(response => response.json())
+        .then(data => {
+            activityChart.data.labels = data.map(item => item.hour);
+            activityChart.data.datasets[0].data = data.map(item => item.activity);
+            activityChart.update('none');
+            
+            updateActivityHeatmap(data);
+        })
+        .catch(error => console.error('Error loading activity chart:', error));
+}
+
+function updateActivityHeatmap(data) {
+    const maxActivity = Math.max(...data.map(item => item.activity), 1);
+    
+    data.forEach(item => {
+        const hour = parseInt(item.hour.split(':')[0]);
+        const activity = item.activity;
+        const percentage = (activity / maxActivity);
+        
+        let level = 0;
+        if (percentage > 0.8) level = 4;
+        else if (percentage > 0.6) level = 3;
+        else if (percentage > 0.4) level = 2;
+        else if (percentage > 0.2) level = 1;
+        
+        const hourBlock = document.querySelector(`[data-hour="${hour}"]`);
+        hourBlock.className = `hour-block activity-level-${level}`;
+        hourBlock.setAttribute('data-activity', activity);
+        hourBlock.title = `${item.hour}: ${activity} activities`;
+        
+        document.getElementById(`activity-${hour}`).textContent = activity;
+    });
+}
+
+// Cleanup interval on page unload
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
+</script>
+{% endblock %}

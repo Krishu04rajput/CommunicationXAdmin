@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Voicemails - CommunicationX{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="content">
+        <div class="voicemail-header">
+            <img src="{{ url_for('static', filename='images/CommunicationX.png') }}" alt="CommunicationX Logo" class="header-logo">
+            <h1><i class="fas fa-voicemail"></i> Voicemails</h1>
+        </div>
+        
+        <div class="voicemail-tabs">
+            <button class="tab-button active" onclick="showTab('received')">
+                <i class="fas fa-inbox"></i> Received ({{ received|length }})
+            </button>
+            <button class="tab-button" onclick="showTab('sent')">
+                <i class="fas fa-paper-plane"></i> Sent ({{ sent|length }})
+            </button>
+        </div>
+        
+        <div id="received-tab" class="tab-content active">
+            <h2>Received Voicemails</h2>
+            {% if received %}
+                <div class="voicemail-list">
+                    {% for voicemail in received %}
+                        <div class="voicemail-item {% if not voicemail.is_read %}unread{% endif %}">
+                            <div class="voicemail-sender">
+                                {% if voicemail.sender.profile_image_url %}
+                                    <img src="{{ voicemail.sender.profile_image_url }}" alt="Profile" class="sender-avatar">
+                                {% else %}
+                                    <div class="default-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="sender-info">
+                                    <h4>{{ voicemail.sender.username or voicemail.sender.first_name or 'Anonymous' }}</h4>
+                                    <span class="timestamp">{{ voicemail.created_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="voicemail-controls">
+                                <audio controls class="voicemail-audio">
+                                    <source src="{{ voicemail.audio_url }}" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                
+                                {% if voicemail.duration %}
+                                    <span class="duration">{{ voicemail.duration }}s</span>
+                                {% endif %}
+                                
+                                {% if not voicemail.is_read %}
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="markAsRead({{ voicemail.id }})">
+                                        Mark as Read
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>No voicemails received</h3>
+                    <p>When someone sends you a voicemail, it will appear here.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div id="sent-tab" class="tab-content">
+            <h2>Sent Voicemails</h2>
+            {% if sent %}
+                <div class="voicemail-list">
+                    {% for voicemail in sent %}
+                        <div class="voicemail-item">
+                            <div class="voicemail-sender">
+                                {% if voicemail.recipient.profile_image_url %}
+                                    <img src="{{ voicemail.recipient.profile_image_url }}" alt="Profile" class="sender-avatar">
+                                {% else %}
+                                    <div class="default-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="sender-info">
+                                    <h4>To: {{ voicemail.recipient.username or voicemail.recipient.first_name or 'Anonymous' }}</h4>
+                                    <span class="timestamp">{{ voicemail.created_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="voicemail-controls">
+                                <audio controls class="voicemail-audio">
+                                    <source src="{{ voicemail.audio_url }}" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                
+                                {% if voicemail.duration %}
+                                    <span class="duration">{{ voicemail.duration }}s</span>
+                                {% endif %}
+                                
+                                <span class="status {% if voicemail.is_read %}read{% else %}unread{% endif %}">
+                                    {% if voicemail.is_read %}
+                                        <i class="fas fa-check-double"></i> Read
+                                    {% else %}
+                                        <i class="fas fa-check"></i> Delivered
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-microphone"></i>
+                    <h3>No voicemails sent</h3>
+                    <p>Start a conversation and send a voicemail to see it here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.voicemail-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.header-logo {
+    width: 40px;
+    height: auto;
+    border-radius: 8px;
+}
+
+.voicemail-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-button {
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-button.active {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.voicemail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.voicemail-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.voicemail-item.unread {
+    border-left-color: var(--accent-color);
+    background: rgba(79, 172, 254, 0.1);
+}
+
+.voicemail-sender {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sender-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.default-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.sender-info h4 {
+    margin: 0;
+    color: white;
+}
+
+.timestamp {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.voicemail-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.voicemail-audio {
+    flex: 1;
+    min-width: 300px;
+}
+
+.duration {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.status {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.status.read {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.status.unread {
+    background: rgba(156, 163, 175, 0.2);
+    color: #9ca3af;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+    .voicemail-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .voicemail-audio {
+        min-width: unset;
+    }
+    
+    .voicemail-tabs {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabName + '-tab').classList.add('active');
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+}
+
+function markAsRead(voicemailId) {
+    fetch(`/mark_voicemail_read/${voicemailId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+</script>
+{% endblock %}

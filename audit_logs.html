@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs - Admin Panel{% endblock %}
+
+{% block head %}
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 0;
+        margin-bottom: 30px;
+    }
+    
+    .audit-log {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .log-entry {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        transition: background 0.3s;
+    }
+    
+    .log-entry:hover {
+        background: #f8f9fa;
+    }
+    
+    .log-entry:last-child {
+        border-bottom: none;
+    }
+    
+    .log-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 15px;
+    }
+    
+    .log-icon.ban {
+        background: #dc3545;
+    }
+    
+    .log-icon.unban {
+        background: #28a745;
+    }
+    
+    .log-icon.admin {
+        background: #007bff;
+    }
+    
+    .log-icon.password {
+        background: #17a2b8;
+    }
+    
+    .log-icon.lock {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .log-icon.delete {
+        background: #6f42c1;
+    }
+    
+    .log-content {
+        flex: 1;
+    }
+    
+    .log-action {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .log-details {
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    
+    .log-timestamp {
+        color: #868e96;
+        font-size: 0.8em;
+        text-align: right;
+        min-width: 120px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <div class="container">
+        <h1><i class="fas fa-clipboard-list"></i> Audit Logs</h1>
+        <p>View system activity and admin actions</p>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-light">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="audit-log">
+        <h5>Recent Admin Actions</h5>
+        
+        <!-- Sample log entries - in a real app these would come from database -->
+        <div class="log-entry">
+            <div class="log-icon admin">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="log-content">
+                <div class="log-action">Super Admin Account Created</div>
+                <div class="log-details">k.rajput0542@gmail.com was granted super admin privileges</div>
+            </div>
+            <div class="log-timestamp">
+                {{ moment().format('YYYY-MM-DD HH:mm') if moment else 'Just now' }}
+            </div>
+        </div>
+        
+        <div class="log-entry">
+            <div class="log-icon admin">
+                <i class="fas fa-database"></i>
+            </div>
+            <div class="log-content">
+                <div class="log-action">Database Initialized</div>
+                <div class="log-details">Admin system and user tables created successfully</div>
+            </div>
+            <div class="log-timestamp">
+                {{ moment().format('YYYY-MM-DD HH:mm') if moment else 'Just now' }}
+            </div>
+        </div>
+        
+        <!-- Placeholder for future logs -->
+        <div class="text-center py-4">
+            <p class="text-muted">Additional audit logs will appear here as admin actions are performed.</p>
+            <small class="text-muted">
+                Tracked actions include: user bans/unbans, admin privilege changes, server password management, 
+                server locks/unlocks, account deletions, and system configuration changes.
+            </small>
+        </div>
+    </div>
+    
+    <!-- Admin Actions Summary -->
+    <div class="audit-log">
+        <h5>Admin Capabilities Summary</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <h6>User Management</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-ban text-warning"></i> Ban/Unban users with reason tracking</li>
+                    <li><i class="fas fa-shield-alt text-primary"></i> Grant/Remove admin privileges</li>
+                    <li><i class="fas fa-trash text-danger"></i> Delete user accounts (Super Admin only)</li>
+                    <li><i class="fas fa-search text-info"></i> Search and filter users</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Server Management</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-lock text-info"></i> Set/Change/Remove server passwords</li>
+                    <li><i class="fas fa-ban text-warning"></i> Lock/Unlock servers with reason tracking</li>
+                    <li><i class="fas fa-trash text-danger"></i> Delete servers (Super Admin only)</li>
+                    <li><i class="fas fa-eye text-success"></i> Monitor server activity and membership</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Admin Privilege Levels -->
+    <div class="audit-log">
+        <h5>Admin Privilege Levels</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-shield-alt"></i> Regular Admin</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li>• Ban/Unban users</li>
+                            <li>• Manage server passwords</li>
+                            <li>• Lock/Unlock servers</li>
+                            <li>• View audit logs</li>
+                            <li>• Manage messages and channels</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0"><i class="fas fa-crown"></i> Super Admin (Your Level)</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li>• All regular admin permissions</li>
+                            <li>• Grant/Remove admin privileges</li>
+                            <li>• Delete user accounts</li>
+                            <li>• Delete servers permanently</li>
+                            <li>• Full system control</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

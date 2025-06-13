@@ -1,0 +1,353 @@
+/* Animated Message Status Indicators */
+
+.message-status {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    font-size: 12px;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.message-status.sending {
+    color: #6c757d;
+    animation: pulse 1.5s infinite;
+}
+
+.message-status.sent {
+    color: #28a745;
+    animation: checkmark-appear 0.5s ease;
+}
+
+.message-status.delivered {
+    color: #17a2b8;
+    animation: double-check-appear 0.6s ease;
+}
+
+.message-status.read {
+    color: #007bff;
+    animation: read-glow 0.8s ease;
+}
+
+.message-status.failed {
+    color: #dc3545;
+    animation: shake 0.6s ease;
+}
+
+/* Status Icons */
+.status-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.status-icon::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+/* Sending Animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+}
+
+.message-status.sending .status-icon::before {
+    background: currentColor;
+    animation: sending-dots 1.5s infinite;
+}
+
+@keyframes sending-dots {
+    0%, 20% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    60%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+}
+
+/* Single Checkmark for Sent */
+@keyframes checkmark-appear {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) rotate(-45deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(-45deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(-45deg);
+    }
+}
+
+.message-status.sent .status-icon::after {
+    content: '✓';
+    font-size: 14px;
+    font-weight: bold;
+    animation: checkmark-appear 0.5s ease;
+}
+
+/* Double Checkmark for Delivered */
+@keyframes double-check-appear {
+    0% {
+        opacity: 0;
+        transform: translateX(-5px);
+    }
+    50% {
+        opacity: 0.7;
+        transform: translateX(0);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.message-status.delivered .status-icon::after {
+    content: '✓✓';
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: -2px;
+    animation: double-check-appear 0.6s ease;
+}
+
+/* Read Status with Glow */
+@keyframes read-glow {
+    0% {
+        opacity: 0.5;
+        box-shadow: 0 0 0 rgba(0, 123, 255, 0);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    }
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+}
+
+.message-status.read .status-icon::after {
+    content: '✓✓';
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: -2px;
+    color: #007bff;
+    text-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+    animation: read-glow 0.8s ease;
+}
+
+/* Failed Status with Shake */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-3px);
+    }
+    75% {
+        transform: translateX(3px);
+    }
+}
+
+.message-status.failed .status-icon::after {
+    content: '⚠';
+    font-size: 14px;
+    animation: shake 0.6s ease;
+}
+
+/* Typing Indicator Animation */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 12px;
+    background: rgba(var(--accent-bg), 0.3);
+    border-radius: 16px;
+    margin: 5px 0;
+    animation: typing-fade-in 0.3s ease;
+}
+
+@keyframes typing-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    background: rgb(var(--text-secondary));
+    border-radius: 50%;
+    animation: typing-bounce 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* Message Container Enhancements */
+.message-item {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.message-item.sending {
+    opacity: 0.7;
+}
+
+.message-item.failed {
+    border-left: 3px solid #dc3545;
+    background: rgba(220, 53, 69, 0.05);
+}
+
+/* Status Tooltip */
+.status-tooltip {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background: rgb(var(--tertiary-bg));
+    color: rgb(var(--text-primary));
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(5px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    border: 1px solid rgb(var(--accent-bg));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.status-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 10px;
+    border: 5px solid transparent;
+    border-top-color: rgb(var(--tertiary-bg));
+}
+
+.message-status:hover .status-tooltip {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Read Receipt Avatars */
+.read-receipts {
+    display: flex;
+    margin-top: 4px;
+    gap: -8px;
+    align-items: center;
+}
+
+.read-receipt-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgb(var(--primary-bg));
+    position: relative;
+    margin-left: -8px;
+    transition: all 0.3s ease;
+    animation: avatar-appear 0.4s ease;
+}
+
+.read-receipt-avatar:first-child {
+    margin-left: 0;
+}
+
+.read-receipt-avatar:hover {
+    transform: scale(1.2);
+    z-index: 10;
+}
+
+@keyframes avatar-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .message-status {
+        font-size: 11px;
+    }
+    
+    .status-icon {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .read-receipt-avatar {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .status-tooltip {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .message-status.sent {
+        color: #20c997;
+    }
+    
+    .message-status.delivered {
+        color: #17a2b8;
+    }
+    
+    .message-status.read {
+        color: #0d6efd;
+    }
+}

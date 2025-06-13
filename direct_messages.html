@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}Direct Messages - CommunicationX{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='assets/CommunicationX.png') }}" alt="Logo" class="logo-small me-2">
+                <span class="fw-bold">CommunicationX</span>
+            </div>
+            <a href="{{ url_for('home') }}" class="btn btn-sm btn-secondary">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+
+        <div class="dm-section">
+            <div class="d-flex justify-content-between align-items-center p-3">
+                <h6 class="mb-0 text-secondary">Direct Messages</h6>
+                <button class="btn btn-sm btn-primary" data-modal-target="newDmModal">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+            <div class="dm-list">
+                {% if conversations %}
+                    {% for user in conversations %}
+                    <div class="user-item" onclick="window.location.href='{{ url_for('dm_conversation', user_id=user.id) }}'">
+                        {% if user.profile_image_url %}
+                            <img src="{{ user.profile_image_url }}" alt="Avatar" class="user-item-avatar">
+                        {% else %}
+                            <div class="user-item-avatar">{{ user.first_name[0] if user.first_name else user.username[0] if user.username else 'U' }}</div>
+                        {% endif %}
+                        <div class="user-item-name">{{ user.first_name or user.username or 'User' }}</div>
+                        <div class="user-item-status"></div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state p-3">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="empty-state-title">No conversations</div>
+                        <div class="empty-state-text">Start a new conversation!</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        {% if other_user %}
+            <!-- Conversation View -->
+            <div class="content-header">
+                <div class="d-flex align-items-center">
+                    {% if other_user.profile_image_url %}
+                        <img src="{{ other_user.profile_image_url }}" alt="Avatar" class="user-avatar me-2">
+                    {% else %}
+                        <div class="user-avatar me-2">{{ other_user.first_name[0] if other_user.first_name else other_user.username[0] if other_user.username else 'U' }}</div>
+                    {% endif %}
+                    <h2 class="content-title mb-0">{{ other_user.first_name or other_user.username or 'User' }}</h2>
+                </div>
+                <div class="call-buttons">
+                    <button class="btn btn-success btn-sm call-user-btn" data-user-id="{{ other_user.id }}" data-call-type="audio">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button class="btn btn-primary btn-sm call-user-btn" data-user-id="{{ other_user.id }}" data-call-type="video">
+                        <i class="fas fa-video"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="content-body">
+                <div class="messages-container">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="message message-item {% if message.sender_id == current_user.id %}message-sent{% else %}message-received{% endif %}" 
+                             data-message-id="{{ message.id }}" 
+                             data-status="{{ message.status or 'sent' }}">
+                            {% if message.sender_id != current_user.id %}
+                                {% if message.sender.profile_image_url %}
+                                    <img src="{{ message.sender.profile_image_url }}" alt="Avatar" class="message-avatar">
+                                {% else %}
+                                    <div class="message-avatar">{{ message.sender.first_name[0] if message.sender.first_name else message.sender.username[0] if message.sender.username else 'U' }}</div>
+                                {% endif %}
+                            {% endif %}
+                            <div class="message-content">
+                                <div class="message-text">{{ message.content }}</div>
+                                <div class="message-meta">
+                                    <div class="message-time">{{ message.created_at.strftime('%I:%M %p') }}</div>
+                                    {% if message.sender_id == current_user.id %}
+                                        <div class="message-status {{ message.status or 'sent' }}" data-message-id="{{ message.id }}">
+                                            <div class="status-icon"></div>
+                                            <div class="status-tooltip">
+                                                {% if message.status == 'sending' %}Sending...
+                                                {% elif message.status == 'sent' %}Sent
+                                                {% elif message.status == 'delivered' %}Delivered
+                                                {% elif message.status == 'read' %}Read
+                                                {% elif message.status == 'failed' %}Failed to send
+                                                {% else %}Sent{% endif %}
+                                                {% if message.read_at %} at {{ message.read_at.strftime('%I:%M %p') }}
+                                                {% elif message.delivered_at %} at {{ message.delivered_at.strftime('%I:%M %p') }}
+                                                {% else %} at {{ message.created_at.strftime('%I:%M %p') }}{% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="empty-state-title">Start the conversation</div>
+                            <div class="empty-state-text">Send the first message to {{ other_user.first_name or other_user.username or 'this user' }}!</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="message-input-container">
+                <form method="POST" action="{{ url_for('send_dm', user_id=other_user.id) }}" class="message-input-form">
+                    <textarea name="message" class="message-input" placeholder="Type a message to {{ other_user.first_name or other_user.username or 'user' }}..." rows="1" required></textarea>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        {% else %}
+            <!-- No Conversation Selected -->
+            <div class="content-header">
+                <h2 class="content-title">
+                    <i class="fas fa-envelope"></i>
+                    Direct Messages
+                </h2>
+            </div>
+
+            <div class="content-body">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-envelope-open"></i>
+                    </div>
+                    <div class="empty-state-title">Select a conversation</div>
+                    <div class="empty-state-text">Choose a conversation from the sidebar or start a new one!</div>
+                    <button class="btn-primary mt-3" data-modal-target="newDmModal">
+                        <i class="fas fa-plus"></i> Start New Conversation
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- New DM Modal -->
+<div class="modal" id="newDmModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Start New Conversation</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Select User</label>
+                <div class="user-select-list">
+                    {% for user in all_users %}
+                    <div class="user-select-item" onclick="window.location.href='{{ url_for('dm_conversation', user_id=user.id) }}'">
+                        {% if user.profile_image_url %}
+                            <img src="{{ user.profile_image_url }}" alt="Avatar" class="user-item-avatar">
+                        {% else %}
+                            <div class="user-item-avatar">{{ user.first_name[0] if user.first_name else user.username[0] if user.username else 'U' }}</div>
+                        {% endif %}
+                        <div class="user-item-name">{{ user.first_name or user.username or 'User' }}</div>
+                        <div class="conversation-actions">
+                        <a href="{{ url_for('start_call', call_type='audio', user_id=user.id) }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-phone"></i>
+                        </a>
+                        <a href="{{ url_for('start_call', call_type='video', user_id=user.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-video"></i>
+                        </a>
+                    </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.dm-section {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.dm-list {
+    padding: 0 0.5rem;
+}
+
+.call-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.call-buttons .btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-sent {
+    margin-left: auto;
+    max-width: 70%;
+}
+
+.message-sent .message-content {
+    background-color: rgb(var(--accent-color));
+    color: white;
+    border-radius: 18px 18px 4px 18px;
+    padding: 0.75rem 1rem;
+    margin-left: auto;
+}
+
+.message-received .message-content {
+    background-color: rgb(var(--secondary-bg));
+    border-radius: 18px 18px 18px 4px;
+    padding: 0.75rem 1rem;
+}
+
+.message-text {
+    margin-bottom: 0.25rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.user-select-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid rgb(var(--accent-bg));
+    border-radius: 6px;
+    background-color: rgb(var(--tertiary-bg));
+}
+
+.user-select-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgb(var(--accent-bg));
+    transition: background-color 0.2s ease;
+}
+
+.user-select-item:hover {
+    background-color: rgb(var(--accent-bg));
+}
+
+.user-select-item:last-child {
+    border-bottom: none;
+}
+
+.messages-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    padding: 1rem 0;
+}
+
+@media (max-width: 768px) {
+    .call-buttons .btn {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+
+    .message-sent, .message-received {
+        max-width: 85%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-scroll to bottom of messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Focus message input
+    const messageInput = document.querySelector('.message-input');
+    if (messageInput) {
+        messageInput.focus();
+    }
+});
+
+// Handle call buttons
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.call-user-btn')) {
+        const btn = e.target.closest('.call-user-btn');
+        const userId = btn.dataset.userId;
+        const callType = btn.dataset.callType;
+
+        if (confirm(`Start ${callType} call?`)) {
+            window.location.href = `/call/${userId}/${callType}`;
+        }
+    }
+});
+
+// Initialize message status system for direct messages
+const userId = '{{ other_user.id if other_user else "" }}';
+const currentUserId = '{{ current_user.id }}';
+const messagesContainer = document.querySelector('.messages-container');
+
+if (userId && typeof socket !== 'undefined') {
+    // Join user room for real-time updates
+    socket.emit('join_user_room', {});
+    
+    // Mark messages as delivered when viewing conversation
+    const unreadMessages = document.querySelectorAll('[data-message-id][data-status="sent"]');
+    unreadMessages.forEach(message => {
+        const messageId = message.dataset.messageId;
+        const isReceived = !message.classList.contains('message-sent');
+        
+        if (isReceived) {
+            socket.emit('message_delivered', {
+                message_id: messageId,
+                type: 'dm'
+            });
+        }
+    });
+    
+    // Mark messages as read when they come into view
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const message = entry.target;
+                const messageId = message.dataset.messageId;
+                const isReceived = !message.classList.contains('message-sent');
+                const isUnread = message.dataset.status !== 'read';
+                
+                if (isReceived && isUnread && messageId) {
+                    socket.emit('mark_message_read', {
+                        message_id: messageId,
+                        type: 'dm'
+                    });
+                    message.dataset.status = 'read';
+                }
+            }
+        });
+    }, { threshold: 0.5 });
+    
+    // Observe all received messages
+    document.querySelectorAll('.message-received[data-message-id]').forEach(message => {
+        observer.observe(message);
+    });
+}
+
+// Handle form submission with status indicators
+const messageForm = document.querySelector('.message-input-form');
+const messageInput = document.querySelector('.message-input');
+
+if (messageForm && messageInput) {
+    messageForm.addEventListener('submit', function(e) {
+        const messageText = messageInput.value.trim();
+        if (!messageText) {
+            e.preventDefault();
+            return;
+        }
+        
+        // Create temporary message element with sending status
+        const tempMessageId = 'temp_' + Date.now();
+        const messageHtml = `
+            <div class="message message-item message-sent" data-message-id="${tempMessageId}" data-status="sending">
+                <div class="message-content">
+                    <div class="message-text">${messageText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                    <div class="message-meta">
+                        <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div class="message-status sending" data-message-id="${tempMessageId}">
+                            <div class="status-icon"></div>
+                            <div class="status-tooltip">Sending...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (messagesContainer) {
+            messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Clear input
+        messageInput.value = '';
+    });
+    
+    // Handle typing indicators
+    let typingTimer;
+    messageInput.addEventListener('input', function() {
+        if (userId && typeof socket !== 'undefined') {
+            socket.emit('typing', { channel_id: `dm_${userId}` });
+            
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                socket.emit('stop_typing', { channel_id: `dm_${userId}` });
+            }, 2000);
+        }
+    });
+    
+    messageInput.addEventListener('blur', function() {
+        if (userId && typeof socket !== 'undefined') {
+            socket.emit('stop_typing', { channel_id: `dm_${userId}` });
+        }
+    });
+}
+
+// Handle real-time message status updates
+if (typeof socket !== 'undefined') {
+    socket.on('message_status_update', function(data) {
+        if (window.messageStatusManager) {
+            window.messageStatusManager.updateMessageStatus(
+                data.message_id,
+                data.status,
+                data.timestamp,
+                data.read_by
+            );
+        }
+    });
+    
+    socket.on('user_typing', function(data) {
+        if (window.messageStatusManager) {
+            window.messageStatusManager.showTypingIndicator(
+                data.user_id,
+                data.username,
+                data.channel_id
+            );
+        }
+    });
+    
+    socket.on('user_stopped_typing', function(data) {
+        if (window.messageStatusManager) {
+            window.messageStatusManager.hideTypingIndicator(
+                data.user_id,
+                data.channel_id
+            );
+        }
+    });
+}
+</script>
+{% endblock %}

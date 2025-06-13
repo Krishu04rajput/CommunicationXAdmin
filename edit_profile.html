@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - CommunicationX{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="content">
+        <div class="form-container">
+            <div class="form-header">
+                <img src="{{ url_for('static', filename='images/CommunicationX.png') }}" alt="CommunicationX Logo" class="form-logo">
+                <h1>Edit Your Profile</h1>
+                <p>Customize your CommunicationX experience</p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" class="profile-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" 
+                               value="{{ user.username or '' }}" 
+                               placeholder="Enter your username">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status">
+                            <option value="online" {% if user.status == 'online' %}selected{% endif %}>Online</option>
+                            <option value="away" {% if user.status == 'away' %}selected{% endif %}>Away</option>
+                            <option value="busy" {% if user.status == 'busy' %}selected{% endif %}>Busy</option>
+                            <option value="invisible" {% if user.status == 'invisible' %}selected{% endif %}>Invisible</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="profile_image">Upload Profile Photo</label>
+                    <input type="file" id="profile_image" name="profile_image" 
+                           accept="image/*" class="file-input">
+                    <small class="form-help">Upload an image from your computer (JPG, PNG, GIF)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="profile_image_url">Or Profile Image URL</label>
+                    <input type="url" id="profile_image_url" name="profile_image_url" 
+                           value="{{ user.profile_image_url or '' }}" 
+                           placeholder="https://example.com/your-image.jpg">
+                    <small class="form-help">Paste a direct link to your profile image</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location" 
+                           value="{{ user.location or '' }}" 
+                           placeholder="Your city, country">
+                </div>
+
+                <div class="form-group">
+                    <label for="bio">About You</label>
+                    <textarea id="bio" name="bio" rows="4" 
+                              placeholder="Tell others about yourself...">{{ user.bio or '' }}</textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <a href="{{ url_for('profile') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+
+            <div class="profile-preview">
+                <h3>Preview</h3>
+                <div class="preview-card">
+                    <div class="preview-avatar">
+                        {% if user.profile_image_url %}
+                            <img src="{{ user.profile_image_url }}" alt="Profile Preview">
+                        {% else %}
+                            <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <div class="preview-info">
+                        <h4>{{ user.username or user.first_name or 'Username' }}</h4>
+                        <span class="preview-status">{{ user.status or 'online' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="image-editor" style="display:none;">
+                <h3>Edit Profile Photo</h3>
+                <canvas id="image-canvas" width="200" height="200"></canvas>
+                <input type="hidden" id="resized-image-data" name="resized_image_data">
+                <div class="image-controls">
+                    <label for="image-size">Size: <span id="size-value">120px</span></label>
+                    <input type="range" id="image-size" min="50" max="150" value="120">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.form-logo {
+    width: 80px;
+    height: auto;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+}
+
+.profile-form {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: white;
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.file-input {
+    padding: 0.5rem !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 2px dashed rgba(255, 255, 255, 0.3) !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+}
+
+.file-input:hover {
+    border-color: var(--accent-color) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.form-help {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.profile-preview {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: 12px;
+}
+
+.preview-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.preview-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.preview-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.preview-avatar i {
+    color: white;
+    font-size: 1.5rem;
+}
+
+.preview-info h4 {
+    margin: 0;
+    color: white;
+}
+
+.preview-status {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+}
+
+#image-editor {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+#image-canvas {
+    background: #333;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.image-controls {
+    color: white;
+}
+
+.image-controls input[type="range"] {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// Live preview updates and image editing
+document.addEventListener('DOMContentLoaded', function() {
+    const usernameInput = document.getElementById('username');
+    const statusSelect = document.getElementById('status');
+    const profileImageInput = document.getElementById('profile_image_url');
+    const profileFileInput = document.getElementById('profile_image');
+
+    const previewName = document.querySelector('.preview-info h4');
+    const previewStatus = document.querySelector('.preview-status');
+    const previewAvatar = document.querySelector('.preview-avatar');
+
+    // Image editor elements
+    const imageEditor = document.getElementById('image-editor');
+    const imageSizeSlider = document.getElementById('image-size');
+    const sizeValue = document.getElementById('size-value');
+    const canvas = document.getElementById('image-canvas');
+    const ctx = canvas.getContext('2d');
+    const resizedImageData = document.getElementById('resized-image-data');
+
+    let currentImage = null;
+    let imageX = 0;
+    let imageY = 0;
+    let isDragging = false;
+
+    function updatePreview() {
+        if (usernameInput.value.trim()) {
+            previewName.textContent = usernameInput.value;
+        }
+
+        previewStatus.textContent = statusSelect.value;
+
+        if (profileImageInput.value.trim()) {
+            previewAvatar.innerHTML = `<img src="${profileImageInput.value}" alt="Profile Preview">`;
+        } else if (resizedImageData.value) {
+            previewAvatar.innerHTML = `<img src="${resizedImageData.value}" alt="Profile Preview">`;
+        } else {
+            previewAvatar.innerHTML = '<i class="fas fa-user"></i>';
+        }
+    }
+
+    function drawImage() {
+        if (!currentImage) return;
+
+        const size = parseInt(imageSizeSlider.value);
+        const scale = size / 120; // Base size is 120px
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate image dimensions
+        const imageWidth = currentImage.width * scale;
+        const imageHeight = currentImage.height * scale;
+
+        // Draw image
+        ctx.drawImage(currentImage, imageX, imageY, imageWidth, imageHeight);
+
+        // Create circular crop
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = size / 2;
+
+        // Save current state
+        ctx.save();
+
+        // Create circular clipping path
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Restore state
+        ctx.restore();
+
+        // Update size display
+        sizeValue.textContent = size + 'px';
+
+        // Update hidden input with cropped image data
+        const croppedCanvas = document.createElement('canvas');
+        const croppedCtx = croppedCanvas.getContext('2d');
+        croppedCanvas.width = size;
+        croppedCanvas.height = size;
+
+        // Draw the cropped circular image
+        croppedCtx.drawImage(canvas, 
+            centerX - radius, centerY - radius, size, size,
+            0, 0, size, size);
+
+        resizedImageData.value = croppedCanvas.toDataURL('image/jpeg', 0.8);
+        updatePreview();
+    }
+
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+
+                    // Center the image
+                    imageX = (canvas.width - img.width) / 2;
+                    imageY = (canvas.height - img.height) / 2;
+
+                    // Show image editor
+                    imageEditor.style.display = 'block';
+
+                    // Clear URL input when file is selected
+                    profileImageInput.value = '';
+
+                    // Draw initial image
+                    drawImage();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Canvas mouse events for dragging
+    canvas.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        const rect = canvas.getBoundingClientRect();
+        const startX = e.clientX - rect.left;
+        const startY = e.clientY - rect.top;
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+
+            imageX += currentX - startX;
+            imageY += currentY - startY;
+
+            drawImage();
+        });
+    });
+
+    canvas.addEventListener('mouseup', function() {
+        isDragging = false;
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+        isDragging = false;
+    });
+
+    // Size slider event
+    imageSizeSlider.addEventListener('input', drawImage);
+
+    // Form events
+    usernameInput.addEventListener('input', updatePreview);
+    statusSelect.addEventListener('change', updatePreview);
+    profileImageInput.addEventListener('input', updatePreview);
+    profileFileInput.addEventListener('change', handleFileUpload);
+});
+</script>
+{% endblock %}

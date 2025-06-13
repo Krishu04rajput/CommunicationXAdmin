@@ -1,0 +1,864 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+{% if server %}{{ server.name }} Call{% else %}Call with {{ other_user.username or other_user.first_name }}{% endif %} - CommunicationX
+{% endblock %}
+
+{% block content %}
+<div class="call-screen" data-call-id="{{ call.id }}" data-is-initiator="true" data-call-type="{{ call.call_type }}">
+    <!-- Call Header -->
+    <div class="call-header">
+        <div class="call-info">
+            {% if server %}
+                {% if server.logo_url %}
+                    <img src="{{ server.logo_url }}" alt="{{ server.name }}" class="call-avatar">
+                {% else %}
+                    <div class="call-avatar">{{ server.name[0] }}</div>
+                {% endif %}
+                <div class="call-details">
+                    <h3>{{ server.name }} Group Call</h3>
+                    <div class="call-status">
+                        <span class="status-indicator"></span>
+                        {{ call.call_type.title() }} Call
+                        <span class="call-duration" id="callDuration">00:00</span>
+                    </div>
+                </div>
+            {% else %}
+                {% if other_user.profile_image_url %}
+                    <img src="{{ other_user.profile_image_url }}" alt="{{ other_user.username or other_user.first_name }}" class="call-avatar">
+                {% else %}
+                    <div class="call-avatar">{{ (other_user.first_name or other_user.username or 'U')[0] }}</div>
+                {% endif %}
+                <div class="call-details">
+                    <h3>{{ other_user.username or other_user.first_name or 'User' }}</h3>
+                    <div class="call-status">
+                        <span class="status-indicator"></span>
+                        {{ call.call_type.title() }} Call
+                        <span class="call-duration" id="callDuration">00:00</span>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="call-header-actions">
+            <button class="btn btn-secondary" onclick="minimizeCall()">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Video Container -->
+    {% if call.call_type == 'video' %}
+    <div class="video-container">
+        <div class="remote-video-wrapper">
+            <video id="remoteVideo" class="remote-video" autoplay playsinline muted></video>
+            <div class="remote-video-placeholder" id="remoteVideoPlaceholder">
+                {% if server %}
+                    {% if server.logo_url %}
+                        <img src="{{ server.logo_url }}" alt="{{ server.name }}" class="user-avatar-large">
+                    {% else %}
+                        <div class="user-avatar-large">{{ server.name[0] }}</div>
+                    {% endif %}
+                    <h2>{{ server.name }}</h2>
+                    <p>Waiting for participants...</p>
+                {% else %}
+                    {% if other_user.profile_image_url %}
+                        <img src="{{ other_user.profile_image_url }}" alt="{{ other_user.username or other_user.first_name }}" class="user-avatar-large">
+                    {% else %}
+                        <div class="user-avatar-large">{{ (other_user.first_name or other_user.username or 'U')[0] }}</div>
+                    {% endif %}
+                    <h2>{{ other_user.username or other_user.first_name or 'User' }}</h2>
+                    <p>Connecting...</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="local-video-wrapper">
+            <video id="localVideo" class="local-video" autoplay playsinline muted></video>
+            <div class="local-video-placeholder">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Audio Call Display -->
+    <div class="audio-call-container">
+        <div class="audio-call-content">
+            {% if server %}
+                {% if server.logo_url %}
+                    <img src="{{ server.logo_url }}" alt="{{ server.name }}" class="audio-avatar">
+                {% else %}
+                    <div class="audio-avatar">{{ server.name[0] }}</div>
+                {% endif %}
+                <h2>{{ server.name }}</h2>
+                <p>Group Voice Call</p>
+            {% else %}
+                {% if other_user.profile_image_url %}
+                    <img src="{{ other_user.profile_image_url }}" alt="{{ other_user.username or other_user.first_name }}" class="audio-avatar">
+                {% else %}
+                    <div class="audio-avatar">{{ (other_user.first_name or other_user.username or 'U')[0] }}</div>
+                {% endif %}
+                <h2>{{ other_user.username or other_user.first_name or 'User' }}</h2>
+                <p>Voice Call</p>
+            {% endif %}
+            
+            <div class="audio-level-container">
+                <div class="audio-level-bar" id="audioLevelBar"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Call Controls -->
+    <div class="call-controls">
+        <button class="call-button mute" id="muteBtn" title="Mute microphone">
+            <i class="fas fa-microphone"></i>
+        </button>
+        
+        {% if call.call_type == 'video' %}
+        <button class="call-button camera" id="cameraBtn" title="Turn off camera">
+            <i class="fas fa-video"></i>
+        </button>
+        {% endif %}
+        
+        <button class="call-button screen-share" id="screenShareBtn" title="Share screen">
+            <i class="fas fa-desktop"></i>
+        </button>
+        
+        <button class="call-button settings" id="settingsBtn" title="Call settings">
+            <i class="fas fa-cog"></i>
+        </button>
+        
+        <button class="call-button end" id="endCallBtn" title="End call">
+            <i class="fas fa-phone-slash"></i>
+        </button>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-content">
+            <h4>Call Settings</h4>
+            
+            <div class="setting-group">
+                <label>Audio Input</label>
+                <select id="audioInputSelect" class="form-select">
+                    <option>Default Microphone</option>
+                </select>
+            </div>
+            
+            <div class="setting-group">
+                <label>Audio Output</label>
+                <select id="audioOutputSelect" class="form-select">
+                    <option>Default Speakers</option>
+                </select>
+            </div>
+            
+            {% if call.call_type == 'video' %}
+            <div class="setting-group">
+                <label>Camera</label>
+                <select id="videoInputSelect" class="form-select">
+                    <option>Default Camera</option>
+                </select>
+            </div>
+            {% endif %}
+            
+            <div class="setting-group">
+                <label>Screen Share Audio</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="shareSystemAudio">
+                        Include system audio
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+        <div class="connection-indicator"></div>
+        <span>Connecting...</span>
+    </div>
+
+    <!-- Error Display -->
+    <div class="call-error" id="callError"></div>
+</div>
+
+<style>
+.call-screen {
+    height: 100vh;
+    background: linear-gradient(135deg, rgb(var(--primary-bg)), rgb(var(--secondary-bg)));
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.call-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.call-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+}
+
+.call-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: rgb(var(--accent-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    object-fit: cover;
+}
+
+.call-details h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.call-status {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    animation: pulse 2s infinite;
+}
+
+.call-duration {
+    font-family: 'Courier New', monospace;
+    background-color: rgba(0,0,0,0.5);
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+}
+
+.video-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(var(--primary-bg));
+}
+
+.remote-video-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: radial-gradient(circle at center, rgb(var(--secondary-bg)), rgb(var(--primary-bg)));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: rgb(var(--secondary-bg));
+    border-radius: 0;
+}
+
+.remote-video-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgb(var(--text-secondary));
+    text-align: center;
+}
+
+.remote-video-placeholder .user-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: rgb(var(--accent-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    border: 5px solid rgba(255,255,255,0.1);
+    object-fit: cover;
+}
+
+.local-video-wrapper {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    z-index: 50;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 3px solid rgb(var(--accent-color));
+    background-color: rgb(var(--secondary-bg));
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.local-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: rgb(var(--secondary-bg));
+}
+
+.audio-call-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.audio-call-content {
+    max-width: 400px;
+    padding: 2rem;
+}
+
+.audio-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background-color: rgb(var(--accent-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    font-weight: bold;
+    margin: 0 auto 2rem;
+    border: 5px solid rgba(255,255,255,0.1);
+    object-fit: cover;
+}
+
+.audio-level-container {
+    margin-top: 2rem;
+}
+
+.audio-level-bar {
+    width: 200px;
+    height: 8px;
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.audio-level-bar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669, #f59e0b, #ef4444);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.1s ease;
+}
+
+.call-controls {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    background: rgba(0,0,0,0.8);
+    padding: 1.5rem;
+    border-radius: 60px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.call-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.call-button:hover {
+    transform: scale(1.1);
+}
+
+.call-button.mute {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.call-button.mute.active {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.call-button.camera {
+    background: linear-gradient(135deg, rgb(var(--accent-color)), rgb(var(--accent-color-hover)));
+    color: white;
+}
+
+.call-button.camera.active {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.call-button.screen-share {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.call-button.screen-share.active {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.call-button.settings {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+}
+
+.call-button.end {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    width: 70px;
+    height: 70px;
+    font-size: 24px;
+}
+
+.settings-panel {
+    position: absolute;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    border-radius: 12px;
+    padding: 1.5rem;
+    min-width: 300px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: none;
+}
+
+.settings-panel.active {
+    display: block;
+}
+
+.settings-content h4 {
+    margin: 0 0 1rem 0;
+    color: white;
+}
+
+.setting-group {
+    margin-bottom: 1rem;
+}
+
+.setting-group label {
+    display: block;
+    color: white;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-select {
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    color: white;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    cursor: pointer;
+}
+
+.connection-status {
+    position: absolute;
+    top: 100px;
+    left: 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.connection-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    animation: pulse 2s infinite;
+}
+
+.call-error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ef4444;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    display: none;
+    z-index: 200;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@media (max-width: 768px) {
+    .call-controls {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+    
+    .call-button {
+        width: 50px;
+        height: 50px;
+        font-size: 16px;
+    }
+    
+    .call-button.end {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .local-video-wrapper {
+        width: 150px;
+        height: 110px;
+        top: 60px;
+        right: 10px;
+    }
+}
+</style>
+
+<script src="{{ url_for('static', filename='js/webrtc.js') }}"></script>
+<script>
+let callStartTime = Date.now();
+let callDurationInterval;
+let isScreenSharing = false;
+let screenShareStream = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize call duration timer
+    startCallTimer();
+    
+    // Initialize WebRTC
+    const callContainer = document.querySelector('.call-screen');
+    const callId = callContainer.dataset.callId;
+    const isInitiator = callContainer.dataset.isInitiator === 'true';
+    
+    window.webrtcCall = new WebRTCCall(callId, isInitiator);
+    
+    // Setup call controls
+    setupCallControls();
+    
+    // Setup device selection
+    setupDeviceSelection();
+});
+
+function startCallTimer() {
+    updateCallDuration();
+    callDurationInterval = setInterval(updateCallDuration, 1000);
+}
+
+function updateCallDuration() {
+    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    const durationElement = document.getElementById('callDuration');
+    if (durationElement) {
+        durationElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+}
+
+function setupCallControls() {
+    // Mute button
+    const muteBtn = document.getElementById('muteBtn');
+    muteBtn?.addEventListener('click', toggleMute);
+    
+    // Camera button
+    const cameraBtn = document.getElementById('cameraBtn');
+    cameraBtn?.addEventListener('click', toggleCamera);
+    
+    // Screen share button
+    const screenShareBtn = document.getElementById('screenShareBtn');
+    screenShareBtn?.addEventListener('click', toggleScreenShare);
+    
+    // Settings button
+    const settingsBtn = document.getElementById('settingsBtn');
+    settingsBtn?.addEventListener('click', toggleSettings);
+    
+    // End call button
+    const endCallBtn = document.getElementById('endCallBtn');
+    endCallBtn?.addEventListener('click', endCall);
+}
+
+function toggleMute() {
+    if (window.webrtcCall) {
+        window.webrtcCall.toggleMute();
+    }
+}
+
+function toggleCamera() {
+    if (window.webrtcCall) {
+        window.webrtcCall.toggleCamera();
+    }
+}
+
+async function toggleScreenShare() {
+    const screenShareBtn = document.getElementById('screenShareBtn');
+    const shareSystemAudio = document.getElementById('shareSystemAudio')?.checked || false;
+    
+    if (!isScreenSharing) {
+        try {
+            const constraints = {
+                video: true,
+                audio: shareSystemAudio
+            };
+            
+            screenShareStream = await navigator.mediaDevices.getDisplayMedia(constraints);
+            
+            // Replace video track
+            if (window.webrtcCall && window.webrtcCall.localStream) {
+                const videoTrack = screenShareStream.getVideoTracks()[0];
+                const sender = window.webrtcCall.peerConnection.getSenders().find(s => 
+                    s.track && s.track.kind === 'video'
+                );
+                
+                if (sender) {
+                    await sender.replaceTrack(videoTrack);
+                }
+                
+                // Update local video
+                const localVideo = document.getElementById('localVideo');
+                if (localVideo) {
+                    localVideo.srcObject = screenShareStream;
+                }
+                
+                isScreenSharing = true;
+                screenShareBtn.classList.add('active');
+                screenShareBtn.innerHTML = '<i class="fas fa-desktop"></i>';
+                
+                // Handle screen share end
+                videoTrack.addEventListener('ended', () => {
+                    stopScreenShare();
+                });
+            }
+        } catch (error) {
+            console.error('Error starting screen share:', error);
+            showError('Could not start screen sharing');
+        }
+    } else {
+        stopScreenShare();
+    }
+}
+
+async function stopScreenShare() {
+    if (screenShareStream && window.webrtcCall) {
+        // Stop screen share tracks
+        screenShareStream.getTracks().forEach(track => track.stop());
+        
+        // Restore camera
+        if (window.webrtcCall.localStream) {
+            const videoTrack = window.webrtcCall.localStream.getVideoTracks()[0];
+            const sender = window.webrtcCall.peerConnection.getSenders().find(s => 
+                s.track && s.track.kind === 'video'
+            );
+            
+            if (sender && videoTrack) {
+                await sender.replaceTrack(videoTrack);
+            }
+            
+            // Update local video
+            const localVideo = document.getElementById('localVideo');
+            if (localVideo) {
+                localVideo.srcObject = window.webrtcCall.localStream;
+            }
+        }
+        
+        isScreenSharing = false;
+        const screenShareBtn = document.getElementById('screenShareBtn');
+        screenShareBtn.classList.remove('active');
+        screenShareBtn.innerHTML = '<i class="fas fa-desktop"></i>';
+    }
+}
+
+function toggleSettings() {
+    const settingsPanel = document.getElementById('settingsPanel');
+    settingsPanel.classList.toggle('active');
+}
+
+async function setupDeviceSelection() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        
+        const audioInputSelect = document.getElementById('audioInputSelect');
+        const audioOutputSelect = document.getElementById('audioOutputSelect');
+        const videoInputSelect = document.getElementById('videoInputSelect');
+        
+        // Clear existing options
+        [audioInputSelect, audioOutputSelect, videoInputSelect].forEach(select => {
+            if (select) {
+                select.innerHTML = '';
+            }
+        });
+        
+        devices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `${device.kind} ${device.deviceId.slice(0, 8)}`;
+            
+            if (device.kind === 'audioinput' && audioInputSelect) {
+                audioInputSelect.appendChild(option);
+            } else if (device.kind === 'audiooutput' && audioOutputSelect) {
+                audioOutputSelect.appendChild(option);
+            } else if (device.kind === 'videoinput' && videoInputSelect) {
+                videoInputSelect.appendChild(option);
+            }
+        });
+    } catch (error) {
+        console.error('Error enumerating devices:', error);
+    }
+}
+
+function endCall() {
+    if (callDurationInterval) {
+        clearInterval(callDurationInterval);
+    }
+    
+    if (window.webrtcCall) {
+        window.webrtcCall.endCall();
+    } else {
+        // Fallback redirect
+        {% if server %}
+        window.location.href = '{{ url_for("server_view", server_id=server.id) }}';
+        {% else %}
+        window.location.href = '{{ url_for("dm_conversation", user_id=other_user.id) }}';
+        {% endif %}
+    }
+}
+
+function minimizeCall() {
+    // This could minimize the call window or redirect back to chat
+    {% if server %}
+    window.location.href = '{{ url_for("server_view", server_id=server.id) }}';
+    {% else %}
+    window.location.href = '{{ url_for("dm_conversation", user_id=other_user.id) }}';
+    {% endif %}
+}
+
+function showError(message) {
+    const errorElement = document.getElementById('callError');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        setTimeout(() => {
+            errorElement.style.display = 'none';
+        }, 5000);
+    }
+}
+
+// Update connection status
+function updateConnectionStatus(status) {
+    const statusElement = document.getElementById('connectionStatus');
+    const indicator = statusElement?.querySelector('.connection-indicator');
+    
+    if (statusElement && indicator) {
+        switch(status) {
+            case 'connected':
+                statusElement.querySelector('span').textContent = 'Connected';
+                indicator.style.backgroundColor = '#10b981';
+                break;
+            case 'connecting':
+                statusElement.querySelector('span').textContent = 'Connecting...';
+                indicator.style.backgroundColor = '#f59e0b';
+                break;
+            case 'disconnected':
+                statusElement.querySelector('span').textContent = 'Disconnected';
+                indicator.style.backgroundColor = '#ef4444';
+                break;
+        }
+    }
+}
+
+// Handle audio level visualization
+function setupAudioVisualization() {
+    if (window.webrtcCall && window.webrtcCall.localStream) {
+        const audioLevelDetector = new AudioLevelDetector(window.webrtcCall.localStream);
+        const audioLevelBar = document.getElementById('audioLevelBar');
+        
+        if (audioLevelBar) {
+            audioLevelDetector.startMonitoring((level) => {
+                const percentage = Math.min(level / 50 * 100, 100);
+                audioLevelBar.style.setProperty('--level', `${percentage}%`);
+            });
+        }
+    }
+}
+
+// Close settings panel when clicking outside
+document.addEventListener('click', function(e) {
+    const settingsPanel = document.getElementById('settingsPanel');
+    const settingsBtn = document.getElementById('settingsBtn');
+    
+    if (settingsPanel && !settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+        settingsPanel.classList.remove('active');
+    }
+});
+</script>
+{% endblock %}

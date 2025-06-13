@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}Friends - CommunicationX{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Friends Sidebar -->
+        <div class="col-md-3 sidebar">
+            <div class="p-3">
+                <h5>Friends</h5>
+                <nav class="nav flex-column">
+                    <a href="#" class="nav-link active" data-tab="online">
+                        <i class="fas fa-circle text-success"></i> Online
+                        <span class="badge bg-secondary ms-auto">{{ online_friends|length }}</span>
+                    </a>
+                    <a href="#" class="nav-link" data-tab="all">
+                        <i class="fas fa-users"></i> All Friends
+                        <span class="badge bg-secondary ms-auto">{{ friends|length }}</span>
+                    </a>
+                    <a href="#" class="nav-link" data-tab="pending">
+                        <i class="fas fa-clock"></i> Pending
+                        <span class="badge bg-warning ms-auto">{{ pending_requests|length }}</span>
+                    </a>
+                    <a href="#" class="nav-link" data-tab="blocked">
+                        <i class="fas fa-ban"></i> Blocked
+                        <span class="badge bg-danger ms-auto">{{ blocked_users|length }}</span>
+                    </a>
+                    <a href="#" class="nav-link" data-tab="add">
+                        <i class="fas fa-user-plus"></i> Add Friend
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="p-4">
+                <!-- Online Friends Tab -->
+                <div class="tab-pane active" id="online">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Online Friends</h4>
+                        <button class="btn btn-primary" onclick="startGroupChat()">
+                            <i class="fas fa-users"></i> Start Group Chat
+                        </button>
+                    </div>
+                    <div class="friends-list">
+                        {% for friend in online_friends %}
+                        <div class="friend-card online">
+                            <div class="friend-avatar">
+                                <img src="{{ friend.profile_image_url or '/static/assets/default-avatar.png' }}" alt="{{ friend.username }}">
+                                <div class="status-indicator online"></div>
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">{{ friend.first_name }} {{ friend.last_name }}</div>
+                                <div class="friend-username">{{ friend.username }}</div>
+                                {% if friend.custom_status %}
+                                <div class="friend-status">{{ friend.custom_status }}</div>
+                                {% endif %}
+                                {% if friend.activity %}
+                                <div class="friend-activity">
+                                    <i class="fas fa-gamepad"></i> {{ friend.activity }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="friend-actions">
+                                <button class="btn btn-sm btn-success" onclick="startCall('{{ friend.id }}', 'voice')">
+                                    <i class="fas fa-phone"></i>
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="startCall('{{ friend.id }}', 'video')">
+                                    <i class="fas fa-video"></i>
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="sendMessage('{{ friend.id }}')">
+                                    <i class="fas fa-comment"></i>
+                                </button>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="/profile/{{ friend.id }}">View Profile</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="createNickname('{{ friend.id }}')">Add Nickname</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="removeFriend('{{ friend.id }}')">Remove Friend</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- All Friends Tab -->
+                <div class="tab-pane" id="all">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>All Friends</h4>
+                        <div class="search-container">
+                            <input type="text" class="form-control" placeholder="Search friends..." id="friendSearch">
+                        </div>
+                    </div>
+                    <div class="friends-list">
+                        {% for friend in all_friends %}
+                        <div class="friend-card {{ friend.status }}">
+                            <div class="friend-avatar">
+                                <img src="{{ friend.profile_image_url or '/static/assets/default-avatar.png' }}" alt="{{ friend.username }}">
+                                <div class="status-indicator {{ friend.status }}"></div>
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">{{ friend.first_name }} {{ friend.last_name }}</div>
+                                <div class="friend-username">{{ friend.username }}</div>
+                                <div class="friend-last-seen">
+                                    {% if friend.status == 'online' %}
+                                        Online
+                                    {% else %}
+                                        Last seen {{ friend.last_seen.strftime('%B %d, %Y') }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="friend-actions">
+                                <button class="btn btn-sm btn-secondary" onclick="sendMessage('{{ friend.id }}')">
+                                    <i class="fas fa-comment"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Pending Requests Tab -->
+                <div class="tab-pane" id="pending">
+                    <h4>Pending Friend Requests</h4>
+                    
+                    <!-- Outgoing Requests -->
+                    <div class="mb-4">
+                        <h6>Outgoing Requests</h6>
+                        {% for request in outgoing_requests %}
+                        <div class="friend-card pending">
+                            <div class="friend-avatar">
+                                <img src="{{ request.friend.profile_image_url or '/static/assets/default-avatar.png' }}" alt="{{ request.friend.username }}">
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">{{ request.friend.first_name }} {{ request.friend.last_name }}</div>
+                                <div class="friend-username">{{ request.friend.username }}</div>
+                                <div class="friend-status">Pending since {{ request.created_at.strftime('%B %d, %Y') }}</div>
+                            </div>
+                            <div class="friend-actions">
+                                <button class="btn btn-sm btn-danger" onclick="cancelRequest('{{ request.id }}')">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Incoming Requests -->
+                    <div>
+                        <h6>Incoming Requests</h6>
+                        {% for request in incoming_requests %}
+                        <div class="friend-card pending">
+                            <div class="friend-avatar">
+                                <img src="{{ request.user.profile_image_url or '/static/assets/default-avatar.png' }}" alt="{{ request.user.username }}">
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">{{ request.user.first_name }} {{ request.user.last_name }}</div>
+                                <div class="friend-username">{{ request.user.username }}</div>
+                                <div class="friend-status">Sent {{ request.created_at.strftime('%B %d, %Y') }}</div>
+                            </div>
+                            <div class="friend-actions">
+                                <button class="btn btn-sm btn-success" onclick="acceptRequest('{{ request.id }}')">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="declineRequest('{{ request.id }}')">
+                                    <i class="fas fa-times"></i> Decline
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Add Friend Tab -->
+                <div class="tab-pane" id="add">
+                    <div class="add-friend-container">
+                        <h4>Add Friend</h4>
+                        <p class="text-muted">You can add friends with their CommunicationX username.</p>
+                        
+                        <form id="addFriendForm" class="mt-4">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Enter username#1234" id="friendUsername" required>
+                                <button type="submit" class="btn btn-primary">Send Friend Request</button>
+                            </div>
+                        </form>
+
+                        <div class="mt-4">
+                            <h6>Quick Add</h6>
+                            <p class="text-muted">Add friends from other platforms</p>
+                            <div class="quick-add-buttons">
+                                <button class="btn btn-outline-primary" onclick="importContacts('phone')">
+                                    <i class="fas fa-mobile-alt"></i> Import from Phone
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="importContacts('email')">
+                                    <i class="fas fa-envelope"></i> Import from Email
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h6>Suggestions</h6>
+                            <div id="friendSuggestions" class="suggestions-list">
+                                <!-- Friend suggestions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal" id="statusModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Set Status</h3>
+            <button class="modal-close" onclick="closeModal('statusModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="status-options">
+                <div class="status-option" data-status="online">
+                    <i class="fas fa-circle text-success"></i>
+                    <span>Online</span>
+                </div>
+                <div class="status-option" data-status="away">
+                    <i class="fas fa-moon text-warning"></i>
+                    <span>Away</span>
+                </div>
+                <div class="status-option" data-status="busy">
+                    <i class="fas fa-minus-circle text-danger"></i>
+                    <span>Do Not Disturb</span>
+                </div>
+                <div class="status-option" data-status="invisible">
+                    <i class="fas fa-circle text-muted"></i>
+                    <span>Invisible</span>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <label class="form-label">Custom Status</label>
+                <input type="text" class="form-control" placeholder="What's happening?" id="customStatusInput" maxlength="128">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('statusModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="updateStatus()">Save Status</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.friends-list {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.friend-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.friend-card:hover {
+    background-color: var(--secondary-bg);
+}
+
+.friend-avatar {
+    position: relative;
+    margin-right: 1rem;
+}
+
+.friend-avatar img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-bg);
+}
+
+.status-indicator.online { background-color: #43b581; }
+.status-indicator.away { background-color: #faa61a; }
+.status-indicator.busy { background-color: #f04747; }
+.status-indicator.invisible { background-color: #747f8d; }
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.friend-username {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.friend-status, .friend-activity {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.status-options {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.status-option:hover {
+    background-color: var(--secondary-bg);
+}
+
+.status-option.selected {
+    border-color: var(--accent-color);
+    background-color: rgba(var(--accent-color-rgb), 0.1);
+}
+
+.quick-add-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.suggestions-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+</style>
+
+<script>
+// Tab switching
+document.querySelectorAll('.nav-link[data-tab]').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const tabName = this.dataset.tab;
+        
+        // Remove active classes
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        
+        // Add active classes
+        this.classList.add('active');
+        document.getElementById(tabName).classList.add('active');
+    });
+});
+
+// Friend management functions
+function sendMessage(userId) {
+    window.location.href = `/dm/${userId}`;
+}
+
+function startCall(userId, type) {
+    window.location.href = `/call/${userId}/${type}`;
+}
+
+function acceptRequest(requestId) {
+    fetch(`/api/advanced/friends/${requestId}/accept`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error accepting friend request');
+        }
+    });
+}
+
+function declineRequest(requestId) {
+    fetch(`/api/advanced/friends/${requestId}/decline`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error declining friend request');
+        }
+    });
+}
+
+function removeFriend(userId) {
+    if (confirm('Are you sure you want to remove this friend?')) {
+        fetch(`/api/advanced/friends/${userId}/remove`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error removing friend');
+            }
+        });
+    }
+}
+
+// Add friend form
+document.getElementById('addFriendForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('friendUsername').value.trim();
+    if (!username) return;
+    
+    fetch('/api/advanced/friends/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: username })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Friend request sent!');
+            document.getElementById('friendUsername').value = '';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+// Status management
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = 'block';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+document.querySelectorAll('.status-option').forEach(option => {
+    option.addEventListener('click', function() {
+        document.querySelectorAll('.status-option').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+    });
+});
+
+function updateStatus() {
+    const selectedStatus = document.querySelector('.status-option.selected')?.dataset.status || 'online';
+    const customStatus = document.getElementById('customStatusInput').value;
+    
+    fetch('/api/advanced/presence/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: selectedStatus,
+            custom_status: customStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeModal('statusModal');
+            location.reload();
+        } else {
+            alert('Error updating status');
+        }
+    });
+}
+
+// Search functionality
+document.getElementById('friendSearch')?.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    document.querySelectorAll('.friend-card').forEach(card => {
+        const name = card.querySelector('.friend-name').textContent.toLowerCase();
+        const username = card.querySelector('.friend-username').textContent.toLowerCase();
+        
+        if (name.includes(searchTerm) || username.includes(searchTerm)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+
+// Real-time updates
+if (typeof socket !== 'undefined') {
+    socket.on('friend_status_update', function(data) {
+        // Update friend status indicators in real-time
+        const friendCard = document.querySelector(`[data-friend-id="${data.user_id}"]`);
+        if (friendCard) {
+            const statusIndicator = friendCard.querySelector('.status-indicator');
+            statusIndicator.className = `status-indicator ${data.status}`;
+        }
+    });
+    
+    socket.on('friend_request_received', function(data) {
+        // Show notification for new friend request
+        showNotification(`New friend request from ${data.sender_name}`, 'info');
+    });
+}
+</script>
+{% endblock %}

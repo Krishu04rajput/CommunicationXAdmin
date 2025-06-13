@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}{{ server.name }} Call - CommunicationX{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="content">
+        <div class="call-header">
+            <div class="server-info">
+                {% if server.logo_url %}
+                    <img src="{{ server.logo_url }}" alt="{{ server.name }} Logo" class="server-logo">
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/CommunicationX.png') }}" alt="CommunicationX Logo" class="server-logo">
+                {% endif %}
+                <div>
+                    <h1>{{ server.name }} Call</h1>
+                    <p>{{ server.description or 'Server voice/video call' }}</p>
+                </div>
+            </div>
+            
+            <div class="call-controls">
+                <form method="POST" action="{{ url_for('initiate_server_call', server_id=server.id) }}" style="display: inline;">
+                    <input type="hidden" name="call_type" value="audio">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-phone"></i> Start Audio Call
+                    </button>
+                </form>
+                
+                <form method="POST" action="{{ url_for('initiate_server_call', server_id=server.id) }}" style="display: inline;">
+                    <input type="hidden" name="call_type" value="video">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-video"></i> Start Video Call
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        {% if active_calls %}
+            <div class="active-calls">
+                <h2><i class="fas fa-phone-alt"></i> Active Calls</h2>
+                {% for call in active_calls %}
+                    <div class="call-room" data-call-id="{{ call.id }}">
+                        <div class="call-info">
+                            <div class="call-type">
+                                <i class="fas fa-{% if call.call_type == 'video' %}video{% else %}phone{% endif %}"></i>
+                                {{ call.call_type.title() }} Call
+                            </div>
+                            <div class="call-started">
+                                Started by {{ call.caller.username or call.caller.first_name or 'Anonymous' }}
+                                at {{ call.started_at.strftime('%I:%M %p') }}
+                            </div>
+                        </div>
+                        
+                        <div class="call-participants">
+                            <h3>Participants</h3>
+                            <div class="participants-list">
+                                <div class="participant">
+                                    {% if call.caller.profile_image_url %}
+                                        <img src="{{ call.caller.profile_image_url }}" alt="Profile" class="participant-avatar">
+                                    {% else %}
+                                        <div class="default-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span>{{ call.caller.username or call.caller.first_name or 'Anonymous' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="call-messaging">
+                            <h3>Call Chat</h3>
+                            <div class="messages-container" id="messages-{{ call.id }}">
+                                {% for message in call.call_messages %}
+                                    <div class="call-message">
+                                        <div class="message-header">
+                                            <span class="username">{{ message.user.username or message.user.first_name or 'Anonymous' }}</span>
+                                            <span class="timestamp">{{ message.created_at.strftime('%H:%M') }}</span>
+                                        </div>
+                                        <div class="message-content">{{ message.content }}</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <form class="message-form" onsubmit="sendCallMessage(event, {{ call.id }})">
+                                <div class="input-group">
+                                    <input type="text" 
+                                           placeholder="Type a message during the call..." 
+                                           name="content" 
+                                           required>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="call-actions">
+                            <button class="btn btn-success" onclick="joinCall({{ call.id }})">
+                                <i class="fas fa-phone"></i> Join Call
+                            </button>
+                            
+                            {% if call.caller_id == current_user.id %}
+                                <form method="POST" action="{{ url_for('end_call', call_id=call.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-phone-slash"></i> End Call
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-calls">
+                <div class="empty-state">
+                    <i class="fas fa-phone-slash"></i>
+                    <h3>No Active Calls</h3>
+                    <p>Start a voice or video call to connect with other server members.</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="server-nav">
+            <a href="{{ url_for('server_view', server_id=server.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to {{ server.name }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.call-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+.server-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.server-logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.call-controls {
+    display: flex;
+    gap: 1rem;
+}
+
+.active-calls {
+    margin-bottom: 2rem;
+}
+
+.call-room {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--accent-color);
+}
+
+.call-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-type {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.call-started {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.call-participants {
+    margin-bottom: 2rem;
+}
+
+.participants-list {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.participant {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.participant-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.default-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.call-messaging {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.messages-container {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    padding: 1rem 0;
+}
+
+.call-message {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.username {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.timestamp {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.message-content {
+    color: white;
+}
+
+.message-form {
+    margin-top: 1rem;
+}
+
+.input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+}
+
+.input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.call-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.no-calls {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.server-nav {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .call-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .call-info {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .call-controls {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .call-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function sendCallMessage(event, callId) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    fetch(`/send_call_message/${callId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        
+        // Add message to the chat
+        const messagesContainer = document.getElementById(`messages-${callId}`);
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'call-message';
+        messageDiv.innerHTML = `
+            <div class="message-header">
+                <span class="username">${data.user}</span>
+                <span class="timestamp">${data.timestamp}</span>
+            </div>
+            <div class="message-content">${data.content}</div>
+        `;
+        
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Clear form
+        form.reset();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to send message');
+    });
+}
+
+function joinCall(callId) {
+    // This would integrate with WebRTC for actual call functionality
+    alert('Joining call... (WebRTC integration would go here)');
+}
+
+// Auto-refresh call status every 30 seconds
+setInterval(() => {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

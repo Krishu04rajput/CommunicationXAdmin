@@ -1,0 +1,256 @@
+
+{% extends "base.html" %}
+
+{% block title %}Login - CommunicationX{% endblock %}
+
+{% block head %}
+<style>
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgb(var(--primary-bg)) 0%, rgb(var(--secondary-bg)) 100%);
+    padding: 20px;
+}
+
+.login-card {
+    background: rgb(var(--secondary-bg));
+    border: 1px solid rgb(var(--accent-bg));
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.login-logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 30px;
+    display: block;
+}
+
+.login-title {
+    text-align: center;
+    color: rgb(var(--text-primary));
+    margin-bottom: 30px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    color: rgb(var(--text-primary));
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgb(var(--tertiary-bg));
+    border: 1px solid rgb(var(--accent-bg));
+    border-radius: 8px;
+    color: rgb(var(--text-primary));
+    font-size: 16px;
+    transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: rgb(var(--accent-color));
+    box-shadow: 0 0 0 2px rgba(var(--accent-color), 0.2);
+}
+
+.form-input::placeholder {
+    color: rgb(var(--text-secondary));
+}
+
+.btn-continue {
+    width: 100%;
+    padding: 12px;
+    background: rgb(var(--accent-color));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-bottom: 20px;
+}
+
+.btn-continue:hover {
+    background: rgb(var(--accent-color-hover));
+}
+
+.social-divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    color: rgb(var(--text-secondary));
+}
+
+.social-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgb(var(--accent-bg));
+    z-index: 1;
+}
+
+.social-divider span {
+    background: rgb(var(--secondary-bg));
+    padding: 0 15px;
+    position: relative;
+    z-index: 2;
+}
+
+.social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-social {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgb(var(--accent-bg));
+    border-radius: 8px;
+    background: rgb(var(--tertiary-bg));
+    color: rgb(var(--text-primary));
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.btn-social:hover {
+    background: rgb(var(--accent-bg));
+    border-color: rgb(var(--accent-color));
+}
+
+.btn-google {
+    background: #db4437;
+    border-color: #db4437;
+    color: white;
+}
+
+.btn-google:hover {
+    background: #c23321;
+    border-color: #c23321;
+}
+
+.btn-icloud {
+    background: #007aff;
+    border-color: #007aff;
+    color: white;
+}
+
+.btn-icloud:hover {
+    background: #0056cc;
+    border-color: #0056cc;
+}
+
+.btn-replit {
+    background: #f26207;
+    border-color: #f26207;
+    color: white;
+}
+
+.btn-replit:hover {
+    background: #d94f00;
+    border-color: #d94f00;
+}
+
+.signup-link {
+    text-align: center;
+    margin-top: 20px;
+    color: rgb(var(--text-secondary));
+}
+
+.signup-link a {
+    color: rgb(var(--accent-color));
+    text-decoration: none;
+}
+
+.signup-link a:hover {
+    text-decoration: underline;
+}
+
+.alert {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.alert-error {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+}
+
+.alert-success {
+    background: rgba(25, 135, 84, 0.1);
+    border: 1px solid rgba(25, 135, 84, 0.3);
+    color: #198754;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <img src="{{ url_for('static', filename='assets/CommunicationX.png') }}" alt="CommunicationX Logo" class="login-logo">
+        
+        <h1 class="login-title">Join CommunicationX</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('custom_auth') }}">
+            <div class="form-group">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" id="username" name="username" class="form-input" placeholder="Enter your username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required>
+            </div>
+            
+            <button type="submit" class="btn-continue">Continue</button>
+        </form>
+        
+        <div class="signup-link">
+            <p>If you have an account, enter your credentials to login.<br>
+            If you don't have an account, we'll create one for you automatically.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

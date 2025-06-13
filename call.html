@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Call - CommunicateX</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .call-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .call-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .user-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .call-status {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .user-name {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .call-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .accept-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+        
+        .decline-btn, .end-btn {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+        
+        .mute-btn {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+        }
+        
+        .mute-btn.muted {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+        }
+        
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .call-timer {
+            font-size: 1.5rem;
+            color: #333;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .incoming-call {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .audio-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin: 20px 0;
+        }
+        
+        .audio-bar {
+            width: 4px;
+            height: 20px;
+            background: #4CAF50;
+            border-radius: 2px;
+            animation: audioWave 1s infinite ease-in-out;
+        }
+        
+        .audio-bar:nth-child(2) { animation-delay: 0.2s; }
+        .audio-bar:nth-child(3) { animation-delay: 0.4s; }
+        .audio-bar:nth-child(4) { animation-delay: 0.6s; }
+        .audio-bar:nth-child(5) { animation-delay: 0.8s; }
+        
+        @keyframes audioWave {
+            0%, 100% { height: 20px; }
+            50% { height: 40px; }
+        }
+        
+        .connection-status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .status-connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="call-container">
+        <div class="call-card {{ 'incoming-call' if call.status == 'pending' and not is_caller else '' }}">
+            <!-- User Avatar -->
+            <div class="user-avatar">
+                {% if other_user.profile_image_url %}
+                    <img src="{{ other_user.profile_image_url }}" alt="{{ other_user.first_name or other_user.username }}" 
+                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                {% else %}
+                    <i class="fas fa-user"></i>
+                {% endif %}
+            </div>
+            
+            <!-- Call Status -->
+            <div class="call-status" id="callStatus">
+                {% if call.status == 'pending' %}
+                    {% if is_caller %}
+                        Calling...
+                    {% else %}
+                        Incoming Call
+                    {% endif %}
+                {% elif call.status == 'active' %}
+                    Connected
+                {% endif %}
+            </div>
+            
+            <!-- User Name -->
+            <div class="user-name">
+                {{ other_user.first_name or other_user.username }}
+            </div>
+            
+            <!-- Call Timer (only show when active) -->
+            <div class="call-timer" id="callTimer" style="display: {% if call.status == 'active' %}block{% else %}none{% endif %};">
+                00:00
+            </div>
+            
+            <!-- Audio Indicator (only show when active) -->
+            <div class="audio-indicator" id="audioIndicator" style="display: {% if call.status == 'active' %}flex{% else %}none{% endif %};">
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+            </div>
+            
+            <!-- Call Controls -->
+            <div class="call-controls">
+                {% if call.status == 'pending' %}
+                    {% if is_caller %}
+                        <!-- Caller controls: only end call -->
+                        <button class="control-btn decline-btn" onclick="endCall()">
+                            <i class="fas fa-phone-slash"></i>
+                        </button>
+                    {% else %}
+                        <!-- Recipient controls: accept or decline -->
+                        <button class="control-btn accept-btn" onclick="acceptCall()">
+                            <i class="fas fa-phone"></i>
+                        </button>
+                        <button class="control-btn decline-btn" onclick="declineCall()">
+                            <i class="fas fa-phone-slash"></i>
+                        </button>
+                    {% endif %}
+                {% elif call.status == 'active' %}
+                    <!-- Active call controls -->
+                    <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="control-btn end-btn" onclick="endCall()">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                {% endif %}
+            </div>
+            
+            <!-- Connection Status -->
+            <div class="connection-status status-connecting" id="connectionStatus">
+                <i class="fas fa-circle-notch fa-spin"></i> Connecting...
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audio Elements -->
+    <audio id="localAudio" muted autoplay></audio>
+    <audio id="remoteAudio" autoplay></audio>
+    <audio id="ringTone" loop>
+        <source src="/static/sounds/ring.mp3" type="audio/mpeg">
+    </audio>
+    
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        // Call configuration
+        const callId = {{ call.id }};
+        const userId = '{{ current_user.id }}';
+        const isCaller = {{ 'true' if is_caller else 'false' }};
+        const callStatus = '{{ call.status }}';
+        
+        // WebRTC configuration
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+        
+        let peerConnection = null;
+        let localStream = null;
+        let remoteStream = null;
+        let socket = null;
+        let callTimer = null;
+        let callStartTime = null;
+        let isMuted = false;
+        
+        // Initialize call
+        async function initializeCall() {
+            try {
+                // Connect to Socket.IO
+                socket = io();
+                
+                socket.on('connect', function() {
+                    console.log('Connected to server');
+                    updateConnectionStatus('connected', 'Connected');
+                    
+                    // Join call room
+                    socket.emit('join_call', { call_id: callId });
+                });
+                
+                socket.on('disconnect', function() {
+                    console.log('Disconnected from server');
+                    updateConnectionStatus('disconnected', 'Connection lost');
+                });
+                
+                // Handle call events
+                socket.on('call_accepted', handleCallAccepted);
+                socket.on('call_declined', handleCallDeclined);
+                socket.on('call_ended', handleCallEnded);
+                socket.on('webrtc_offer', handleOffer);
+                socket.on('webrtc_answer', handleAnswer);
+                socket.on('webrtc_ice_candidate', handleIceCandidate);
+                
+                // Set up WebRTC if call is active or user is caller
+                if (callStatus === 'active' || isCaller) {
+                    await setupWebRTC();
+                }
+                
+                // Start ringing for incoming calls
+                if (callStatus === 'pending' && !isCaller) {
+                    playRingTone();
+                }
+                
+            } catch (error) {
+                console.error('Error initializing call:', error);
+                updateConnectionStatus('disconnected', 'Failed to connect');
+            }
+        }
+        
+        // Set up WebRTC connection
+        async function setupWebRTC() {
+            try {
+                // Get user media
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: false
+                });
+                
+                document.getElementById('localAudio').srcObject = localStream;
+                
+                // Create peer connection
+                peerConnection = new RTCPeerConnection(rtcConfig);
+                
+                // Add local stream
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                // Handle remote stream
+                peerConnection.ontrack = (event) => {
+                    remoteStream = event.streams[0];
+                    document.getElementById('remoteAudio').srcObject = remoteStream;
+                    console.log('Received remote stream');
+                };
+                
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('webrtc_ice_candidate', {
+                            call_id: callId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                // Handle connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    console.log('Connection state:', peerConnection.connectionState);
+                    
+                    if (peerConnection.connectionState === 'connected') {
+                        updateConnectionStatus('connected', 'Voice connected');
+                        stopRingTone();
+                        startCallTimer();
+                    } else if (peerConnection.connectionState === 'failed') {
+                        updateConnectionStatus('disconnected', 'Connection failed');
+                    }
+                };
+                
+                // Create offer if caller and call is active
+                if (isCaller && callStatus === 'active') {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    socket.emit('webrtc_offer', {
+                        call_id: callId,
+                        offer: offer
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error setting up WebRTC:', error);
+                updateConnectionStatus('disconnected', 'Microphone access denied');
+            }
+        }
+        
+        // Call control functions
+        async function acceptCall() {
+            try {
+                const response = await fetch(`/api/calls/${callId}/accept`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    document.getElementById('callStatus').textContent = 'Connected';
+                    document.querySelector('.call-card').classList.remove('incoming-call');
+                    updateCallControls('active');
+                    stopRingTone();
+                    
+                    // Set up WebRTC for recipient
+                    await setupWebRTC();
+                    
+                } else {
+                    console.error('Failed to accept call');
+                }
+            } catch (error) {
+                console.error('Error accepting call:', error);
+            }
+        }
+        
+        async function declineCall() {
+            try {
+                const response = await fetch(`/api/calls/${callId}/decline`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    stopRingTone();
+                    window.location.href = '/home';
+                }
+            } catch (error) {
+                console.error('Error declining call:', error);
+            }
+        }
+        
+        async function endCall() {
+            try {
+                const response = await fetch(`/api/calls/${callId}/end`, {
+                    method: 'POST'
+                });
+                
+                cleanup();
+                window.location.href = '/home';
+            } catch (error) {
+                console.error('Error ending call:', error);
+                cleanup();
+                window.location.href = '/home';
+            }
+        }
+        
+        function toggleMute() {
+            if (localStream) {
+                const audioTracks = localStream.getAudioTracks();
+                audioTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                });
+                
+                isMuted = !isMuted;
+                const muteBtn = document.getElementById('muteBtn');
+                
+                if (isMuted) {
+                    muteBtn.classList.add('muted');
+                    muteBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                } else {
+                    muteBtn.classList.remove('muted');
+                    muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                }
+            }
+        }
+        
+        // WebRTC event handlers
+        async function handleOffer(data) {
+            if (!peerConnection) {
+                await setupWebRTC();
+            }
+            
+            await peerConnection.setRemoteDescription(data.offer);
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            socket.emit('webrtc_answer', {
+                call_id: callId,
+                answer: answer
+            });
+        }
+        
+        async function handleAnswer(data) {
+            await peerConnection.setRemoteDescription(data.answer);
+        }
+        
+        async function handleIceCandidate(data) {
+            if (peerConnection) {
+                await peerConnection.addIceCandidate(data.candidate);
+            }
+        }
+        
+        function handleCallAccepted(data) {
+            document.getElementById('callStatus').textContent = 'Connected';
+            updateCallControls('active');
+            stopRingTone();
+        }
+        
+        function handleCallDeclined(data) {
+            alert('Call was declined');
+            cleanup();
+            window.location.href = '/home';
+        }
+        
+        function handleCallEnded(data) {
+            cleanup();
+            window.location.href = '/home';
+        }
+        
+        // Utility functions
+        function updateCallControls(status) {
+            const controlsDiv = document.querySelector('.call-controls');
+            
+            if (status === 'active') {
+                controlsDiv.innerHTML = `
+                    <button class="control-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="control-btn end-btn" onclick="endCall()">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                `;
+                
+                document.getElementById('callTimer').style.display = 'block';
+                document.getElementById('audioIndicator').style.display = 'flex';
+            }
+        }
+        
+        function updateConnectionStatus(status, message) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = `connection-status status-${status}`;
+            statusDiv.innerHTML = `<i class="fas fa-circle"></i> ${message}`;
+        }
+        
+        function playRingTone() {
+            const ringTone = document.getElementById('ringTone');
+            ringTone.play().catch(console.error);
+        }
+        
+        function stopRingTone() {
+            const ringTone = document.getElementById('ringTone');
+            ringTone.pause();
+            ringTone.currentTime = 0;
+        }
+        
+        function startCallTimer() {
+            callStartTime = Date.now();
+            callTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+        
+        function cleanup() {
+            stopRingTone();
+            
+            if (callTimer) {
+                clearInterval(callTimer);
+            }
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            
+            if (socket) {
+                socket.disconnect();
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeCall);
+        
+        // Cleanup when page unloads
+        window.addEventListener('beforeunload', cleanup);
+    </script>
+</body>
+</html>

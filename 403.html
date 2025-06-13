@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied - CommunicationX{% endblock %}
+
+{% block head %}
+<style>
+.error-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgb(var(--primary-bg)), rgb(var(--secondary-bg)));
+    padding: 2rem;
+}
+
+.error-content {
+    text-align: center;
+    max-width: 600px;
+    background-color: rgb(var(--secondary-bg));
+    padding: 3rem;
+    border-radius: 16px;
+    border: 1px solid rgb(var(--accent-bg));
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.error-icon {
+    font-size: 5rem;
+    color: rgb(var(--danger-color));
+    margin-bottom: 1.5rem;
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.error-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: rgb(var(--text-primary));
+    margin-bottom: 1rem;
+}
+
+.error-code {
+    font-size: 1.2rem;
+    color: rgb(var(--danger-color));
+    font-family: 'Courier New', monospace;
+    background-color: rgb(var(--tertiary-bg));
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgb(var(--danger-color) / 0.3);
+}
+
+.error-message {
+    font-size: 1.1rem;
+    color: rgb(var(--text-secondary));
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.error-suggestions {
+    background-color: rgb(var(--tertiary-bg));
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-left: 4px solid rgb(var(--accent-color));
+}
+
+.error-suggestions h4 {
+    color: rgb(var(--text-primary));
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.error-suggestions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.error-suggestions li {
+    color: rgb(var(--text-secondary));
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.error-suggestions li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: rgb(var(--accent-color));
+    font-weight: bold;
+}
+
+.help-links {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgb(var(--accent-bg));
+}
+
+.help-links h5 {
+    color: rgb(var(--text-secondary));
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.help-links a {
+    color: rgb(var(--accent-color));
+    text-decoration: none;
+    margin: 0 1rem;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.help-links a:hover {
+    color: rgb(var(--accent-color-hover));
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .error-content {
+        padding: 2rem;
+        margin: 1rem;
+    }
+
+    .error-title {
+        font-size: 2rem;
+    }
+
+    .error-icon {
+        font-size: 4rem;
+    }
+
+    .error-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .help-links a {
+        display: block;
+        margin: 0.5rem 0;
+    }
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgb(var(--accent-bg));
+    border-radius: 50%;
+    border-top-color: rgb(var(--accent-color));
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.btn-retry {
+    background-color: rgb(var(--accent-color));
+    border: none;
+    color: white;
+    padding: 12px 32px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-retry:hover {
+    background-color: rgb(var(--accent-color-hover));
+    transform: translateY(-1px);
+}
+
+.btn-home {
+    background-color: rgb(var(--secondary-bg));
+    border: 1px solid rgb(var(--accent-bg));
+    color: rgb(var(--text-primary));
+    padding: 12px 32px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-home:hover {
+    background-color: rgb(var(--tertiary-bg));
+    border-color: rgb(var(--accent-color));
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-content">
+        <div class="error-icon">
+            <i class="fas fa-lock"></i>
+        </div>
+
+        <h1 class="error-title">Access Denied</h1>
+
+        <div class="error-code">Error 403</div>
+
+        <p class="error-message">
+            You don't have permission to access this resource. This could be due to authentication issues or insufficient privileges.
+        </p>
+
+        <div class="error-actions">
+            <a href="{{ url_for('replit_auth.login') }}" class="btn-retry">
+                <i class="fas fa-sign-in-alt"></i>&nbsp; Sign In
+            </a>
+            <a href="{{ url_for('index') }}" class="btn-home">
+                <i class="fas fa-home"></i>&nbsp; Go Home
+            </a>
+        </div>
+
+        <div class="error-suggestions">
+            <h4>
+                <i class="fas fa-lightbulb"></i>
+                What you can try:
+            </h4>
+            <ul>
+                <li>Make sure you're signed in to your account</li>
+                <li>Check if you have the necessary permissions</li>
+                <li>Verify that the URL is correct</li>
+                <li>Clear your browser cache and cookies</li>
+                <li>Try refreshing the page</li>
+            </ul>
+        </div>
+
+        <div class="help-links">
+            <h5>Need Help?</h5>
+            <a href="{{ url_for('index') }}">
+                <i class="fas fa-home"></i> Home
+            </a>
+            <a href="javascript:history.back()">
+                <i class="fas fa-arrow-left"></i> Go Back
+            </a>
+            <a href="javascript:location.reload()">
+                <i class="fas fa-refresh"></i> Refresh
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add retry functionality with loading state
+    const retryBtn = document.querySelector('.btn-retry');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function(e) {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<span class="loading-spinner"></span>Signing In...';
+            this.disabled = true;
+
+            // Re-enable after timeout as fallback
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }, 5000);
+        });
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        switch(e.key) {
+            case 'h':
+            case 'H':
+                if (e.altKey) {
+                    window.location.href = '{{ url_for("index") }}';
+                }
+                break;
+            case 'r':
+            case 'R':
+                if (e.altKey) {
+                    location.reload();
+                }
+                break;
+            case 'Escape':
+                history.back();
+                break;
+        }
+    });
+
+    // Auto-retry mechanism (optional)
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    function autoRetry() {
+        if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Auto-retry attempt ${retryCount}/${maxRetries}`);
+
+            // Check if user is actually authenticated
+            fetch('/auth/login', { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        // User seems to be authenticated, try reloading
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.log('Auto-retry failed:', error);
+                });
+        }
+    }
+
+    // Try auto-retry after 3 seconds
+    setTimeout(autoRetry, 3000);
+});
+
+// Show additional error info in console for debugging
+console.group('Authentication Error Details');
+console.log('Timestamp:', new Date().toISOString());
+console.log('User Agent:', navigator.userAgent);
+console.log('URL:', window.location.href);
+console.log('Referrer:', document.referrer);
+console.groupEnd();
+</script>
+{% endblock %}

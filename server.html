@@ -1,0 +1,557 @@
+{% extends "base.html" %}
+
+{% block title %}{{ server.name }} - CommunicationX{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='assets/CommunicationX.png') }}" alt="Logo" class="logo-small me-2">
+                <span class="fw-bold">CommunicationX</span>
+            </div>
+            <a href="{{ url_for('home') }}" class="btn btn-sm btn-secondary">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+
+        <div class="server-info p-3 border-bottom">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                {% if server.logo_url %}
+                    <img src="{{ server.logo_url }}" alt="{{ server.name }} Logo" class="server-logo-small">
+                {% else %}
+                    <div class="server-logo-small">{{ server.name[0] }}</div>
+                {% endif %}
+                <h5 class="mb-0">{{ server.name }}</h5>
+                {% if is_owner %}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="openModal('editServerModal')">
+                                <i class="fas fa-edit"></i> Edit Server Info
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="openModal('updateLogoModal')">
+                                <i class="fas fa-image"></i> Update Logo
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="openModal('manageRolesModal')">
+                                <i class="fas fa-user-tag"></i> Manage Roles
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="openModal('manageEmojisModal')">
+                                <i class="fas fa-smile"></i> Custom Emojis
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="openModal('serverSettingsModal')">
+                                <i class="fas fa-cogs"></i> Server Settings
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="openModal('deleteServerModal')">
+                                <i class="fas fa-trash"></i> Delete Server
+                            </a></li>
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+            {% if server.description %}
+                <small class="text-muted">{{ server.description }}</small>
+            {% endif %}
+            
+            <!-- Call Buttons -->
+            <div class="call-buttons mt-2">
+                <a href="{{ url_for('start_server_call', server_id=server.id, call_type='audio') }}" class="btn btn-sm btn-success">
+                    <i class="fas fa-phone"></i> Voice Call
+                </a>
+                <a href="{{ url_for('start_server_call', server_id=server.id, call_type='video') }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-video"></i> Video Call
+                </a>
+            </div>
+        </div>
+
+        <div class="members-section">
+            <div class="d-flex justify-content-between align-items-center p-3">
+                <h6 class="mb-0 text-secondary">Members ({{ members|length }})</h6>
+                {% if is_owner %}
+                    <button class="btn btn-sm btn-primary" onclick="openModal('addMemberModal')">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                {% endif %}
+            </div>
+
+            <div class="user-list px-3">
+                {% for member in members %}
+                <div class="user-item">
+                    {% if member.profile_image_url %}
+                        <img src="{{ member.profile_image_url }}" alt="Avatar" class="user-item-avatar">
+                    {% else %}
+                        <div class="user-item-avatar">{{ member.first_name[0] if member.first_name else member.username[0] if member.username else 'U' }}</div>
+                    {% endif %}
+                    <div class="user-item-name">{{ member.first_name or member.username or 'User' }}</div>
+                    <div class="user-item-status"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        <div class="content-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <h4 class="mb-0"># {{ channel.name if channel else 'General' }}</h4>
+                    {% if channel and channel.description %}
+                        <span class="text-muted">{{ channel.description }}</span>
+                    {% endif %}
+                    {% if channel and channel.slowmode_delay %}
+                        <span class="badge bg-warning">Slowmode: {{ channel.slowmode_delay }}s</span>
+                    {% endif %}
+                </div>
+                <div class="channel-actions">
+                    <button class="btn btn-sm btn-outline-primary" onclick="openModal('channelSearchModal')">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="togglePinnedMessages()">
+                        <i class="fas fa-thumbtack"></i> Pinned
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="createThread()">
+                        <i class="fas fa-comments"></i> Thread
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleMemberList()">
+                        <i class="fas fa-users"></i> Members
+                    </button>
+                </div>
+            </div>
+            <h2 class="content-title">
+                <i class="fas fa-hashtag"></i>
+                {% if channel %}{{ channel.name }}{% else %}general{% endif %}
+            </h2>
+            <div class="header-actions">
+                <a href="{{ url_for('direct_messages') }}" class="dm-button">
+                    <i class="fas fa-envelope"></i> DM
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="content-body">
+            {% if channel %}
+                <div class="messages-container">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="message" data-message-id="{{ message.id }}">
+                            {% if message.author.profile_image_url %}
+                                <img src="{{ message.author.profile_image_url }}" alt="Avatar" class="message-avatar">
+                            {% else %}
+                                <div class="message-avatar">{{ message.author.first_name[0] if message.author.first_name else message.author.username[0] if message.author.username else 'U' }}</div>
+                            {% endif %}
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">{{ message.author.first_name or message.author.username or 'User' }}</span>
+                                    <span class="message-time">{{ message.created_at.strftime('%I:%M %p') }}</span>
+                                    {% if message.is_pinned %}
+                                        <span class="pinned-indicator"><i class="fas fa-thumbtack"></i></span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if message.reply_to %}
+                                <div class="reply-indicator">
+                                    <i class="fas fa-reply"></i> Reply to {{ message.reply_to.author.first_name or message.reply_to.author.username }}
+                                </div>
+                                {% endif %}
+                                
+                                {% if message.message_type == 'audio' %}
+                                <div class="audio-message">
+                                    <i class="fas fa-microphone"></i> Audio Message
+                                    <button class="btn btn-sm btn-primary play-audio" data-message-id="{{ message.id }}">
+                                        <i class="fas fa-play"></i> Play
+                                    </button>
+                                </div>
+                                {% else %}
+                                <div class="message-text">{{ message.content }}</div>
+                                {% endif %}
+                                
+                                <!-- Message Reactions -->
+                                {% if message.reactions %}
+                                <div class="message-reactions">
+                                    {% for reaction in message.reactions %}
+                                    <span class="reaction" data-emoji="{{ reaction.emoji }}" data-message-id="{{ message.id }}">
+                                        {{ reaction.emoji }} <span class="reaction-count">{{ message.reactions|selectattr('emoji', 'equalto', reaction.emoji)|list|length }}</span>
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Message Actions Button -->
+                            <div class="message-actions">
+                                <button class="message-menu-btn" data-message-id="{{ message.id }}" onclick="toggleMessageMenu({{ message.id }})">
+                                    <i class="fas fa-chevron-up"></i>
+                                </button>
+                                
+                                <!-- Message Actions Dropdown -->
+                                <div class="message-dropdown" id="dropdown-{{ message.id }}" style="display: none;">
+                                    <button class="dropdown-item react-btn" data-message-id="{{ message.id }}" onclick="showEmojiPicker({{ message.id }})">
+                                        <i class="fas fa-smile"></i> React
+                                    </button>
+                                    <button class="dropdown-item reply-btn" data-message-id="{{ message.id }}" onclick="replyToMessage({{ message.id }})">
+                                        <i class="fas fa-reply"></i> Reply
+                                    </button>
+                                    <button class="dropdown-item forward-btn" data-message-id="{{ message.id }}" onclick="forwardMessage({{ message.id }})">
+                                        <i class="fas fa-share"></i> Forward to DM
+                                    </button>
+                                    <button class="dropdown-item copy-btn" data-message-id="{{ message.id }}" onclick="copyMessageText({{ message.id }})">
+                                        <i class="fas fa-copy"></i> Copy Text
+                                    </button>
+                                    <button class="dropdown-item speak-btn" data-message-id="{{ message.id }}" onclick="speakMessage({{ message.id }})">
+                                        <i class="fas fa-volume-up"></i> Speak Message
+                                    </button>
+                                    <button class="dropdown-item audio-btn" data-message-id="{{ message.id }}" onclick="sendAudioMessage()">
+                                        <i class="fas fa-microphone"></i> Send Audio
+                                    </button>
+                                    {% if message.author_id == current_user.id or server.owner_id == current_user.id %}
+                                    <button class="dropdown-item pin-btn" data-message-id="{{ message.id }}" onclick="togglePinMessage({{ message.id }})">
+                                        <i class="fas fa-thumbtack"></i> 
+                                        {% if message.is_pinned %}Unpin{% else %}Pin{% endif %} Message
+                                    </button>
+                                    {% endif %}
+                                    {% if message.author_id == current_user.id or server.owner_id == current_user.id %}
+                                    <button class="dropdown-item delete-btn text-danger" data-message-id="{{ message.id }}" onclick="deleteMessage({{ message.id }})">
+                                        <i class="fas fa-trash"></i> Delete Message
+                                    </button>
+                                    {% endif %}
+                                    <button class="dropdown-item report-btn text-warning" data-message-id="{{ message.id }}" onclick="reportMessage({{ message.id }})">
+                                        <i class="fas fa-flag"></i> Report Message
+                                    </button>
+                                </div>
+                                
+                                <!-- Emoji Picker -->
+                                <div class="emoji-picker" id="emoji-picker-{{ message.id }}" style="display: none;">
+                                    <div class="emoji-grid">
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '👍')">👍</span>
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '❤️')">❤️</span>
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '😂')">😂</span>
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '😮')">😮</span>
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '😢')">😢</span>
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '😡')">😡</span>
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '🎉')">🎉</span>
+                                        <span class="emoji-option" onclick="addReaction({{ message.id }}, '🔥')">🔥</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="empty-state-title">No messages yet</div>
+                            <div class="empty-state-text">Be the first to send a message in this channel!</div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-hashtag"></i>
+                    </div>
+                    <div class="empty-state-title">No channels available</div>
+                    <div class="empty-state-text">The server owner needs to create a channel first.</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- File Upload and Shared Files -->
+        {% if channel %}
+        <div class="file-section mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Files</h6>
+                <button class="btn btn-sm btn-secondary" onclick="openModal('uploadFileModal')">
+                    <i class="fas fa-upload"></i> Upload
+                </button>
+            </div>
+            {% if server.shared_files %}
+            <div class="shared-files-list mt-2">
+                {% for file in server.shared_files[-5:] %}
+                <div class="shared-file-item">
+                    <i class="fas fa-file"></i>
+                    <span class="file-name">{{ file.original_filename }}</span>
+                    <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-xs btn-primary">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Message Input -->
+        <div class="message-input-container">
+            <form method="POST" action="{{ url_for('send_message', server_id=server.id) }}" class="message-input-form">
+                <textarea name="message" class="message-input" placeholder="Type a message..." rows="1" required></textarea>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+{% if is_owner %}
+<!-- Add Member Modal -->
+<div class="modal" id="addMemberModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Member</h3>
+            <button class="modal-close" onclick="closeModal('addMemberModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_member', server_id=server.id) }}">
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" class="form-input" required placeholder="Enter username">
+                <small class="text-muted">Enter the exact username of the person you want to add.</small>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn-secondary" onclick="closeModal('addMemberModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Add Member</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Server Modal -->
+<div class="modal" id="editServerModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Edit Server Information</h3>
+            <button class="modal-close" onclick="closeModal('editServerModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('edit_server', server_id=server.id) }}">
+            <div class="form-group">
+                <label class="form-label">Server Name</label>
+                <input type="text" name="name" class="form-input" value="{{ server.name }}" required maxlength="100">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-input" rows="3" maxlength="500" placeholder="Optional server description">{{ server.description or '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Server Type</label>
+                <select name="is_public" class="form-input">
+                    <option value="1" {% if server.is_public %}selected{% endif %}>Public (Auto-add all users)</option>
+                    <option value="0" {% if not server.is_public %}selected{% endif %}>Private (Invite only)</option>
+                </select>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn-secondary" onclick="closeModal('editServerModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Update Logo Modal -->
+<div class="modal" id="updateLogoModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Update Server Logo</h3>
+            <button class="modal-close" onclick="closeModal('updateLogoModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('update_server_logo', server_id=server.id) }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label">Server Logo</label>
+                <input type="file" name="logo_file" class="form-input" accept="image/*" required>
+                <small class="text-muted">Upload a square image (PNG, JPG, GIF, or WebP). Max size: 2MB</small>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn-secondary" onclick="closeModal('updateLogoModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Update Logo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Server Modal -->
+<div class="modal" id="deleteServerModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Delete Server</h3>
+            <button class="modal-close" onclick="closeModal('deleteServerModal')">&times;</button>
+        </div>
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Warning:</strong> This action cannot be undone. All channels, messages, and files will be permanently deleted.
+        </div>
+        <form method="POST" action="{{ url_for('delete_server', server_id=server.id) }}">
+            <div class="form-group">
+                <label class="form-label">Type the server name to confirm deletion:</label>
+                <input type="text" name="confirm_name" class="form-input" placeholder="{{ server.name }}" required>
+                <small class="text-muted">Type "{{ server.name }}" exactly to confirm</small>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn-secondary" onclick="closeModal('deleteServerModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger">Delete Server</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Upload File Modal -->
+<div class="modal" id="uploadFileModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Upload File</h3>
+            <button class="modal-close" onclick="closeModal('uploadFileModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('upload_file', server_id=server.id) }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label">Choose File</label>
+                <input type="file" name="file" class="form-input" required>
+                <small class="text-muted">Max file size: 10MB</small>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn-secondary" onclick="closeModal('uploadFileModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Upload File</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.server-info {
+    background-color: rgb(var(--tertiary-bg));
+}
+
+.members-section {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.message-input-container {
+    position: sticky;
+    bottom: 0;
+}
+
+.messages-container {
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    padding-bottom: 1rem;
+}
+
+.message {
+    padding: 0.75rem 0;
+}
+
+.message:hover {
+    background-color: rgb(var(--secondary-bg) / 0.3);
+    margin: 0 -1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+}
+
+.message-input {
+    border: none;
+    background-color: rgb(var(--tertiary-bg));
+    color: rgb(var(--text-primary));
+    min-height: 44px;
+    max-height: 120px;
+}
+
+.message-input:focus {
+    outline: 2px solid rgb(var(--accent-color));
+    background-color: rgb(var(--secondary-bg));
+}
+
+.user-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+    
+    .content-area {
+        width: 100%;
+    }
+    
+    .dm-button {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1000;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-scroll to bottom of messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Focus message input
+    const messageInput = document.querySelector('.message-input');
+    if (messageInput) {
+        messageInput.focus();
+    }
+});
+
+// Auto-resize message input
+document.querySelector('.message-input')?.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// Modal functions
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal')) {
+        e.target.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+});
+
+// Close modal with escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}CommunicationX - Loading{% endblock %}
+
+{% block content %}
+<div class="splash-screen">
+    <img src="{{ url_for('static', filename='assets/CommunicationX.png') }}" alt="CommunicationX Logo" class="splash-logo">
+</div>
+
+<script>
+// Auto-redirect after 3 seconds
+setTimeout(() => {
+    window.location.href = '{{ url_for("landing") }}';
+}, 3000);
+</script>
+{% endblock %}
